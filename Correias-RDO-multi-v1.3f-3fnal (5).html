@@ -90,13 +90,13 @@ summary{cursor:pointer;font-weight:800}
 <script>
   // Config Firebase (Rdo-Sync)
   window.FIREBASE_CONFIG = {
-    apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
-    authDomain: "rdo-sync.firebaseapp.com",
-    projectId: "rdo-sync",
-    storageBucket: "rdo-sync.firebasestorage.app",
-    messagingSenderId: "551344630048",
-    appId: "1:551344630048:web:87e485e712473a46234f45"
-  };
+  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
+  authDomain: "rdo-sync.firebaseapp.com",
+  projectId: "rdo-sync",
+  storageBucket: "rdo-sync.firebasestorage.app",
+  messagingSenderId: "551344630048",
+  appId: "1:551344630048:web:87e485e712473a46234f45"
+};
 </script>
 
 </head>
@@ -174,7 +174,106 @@ display:inline-flex;gap:8px;align-items:center;">
     document.documentElement.classList.toggle('mobile', mob);
   });
 })();
-// ===== Dados base =====
+// ===== Dados
+// ===================== Firebase (Firestore) - RDO Sync =====================
+window.FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
+  authDomain: "rdo-sync.firebaseapp.com",
+  projectId: "rdo-sync",
+  storageBucket: "rdo-sync.firebasestorage.app",
+  messagingSenderId: "551344630048",
+  appId: "1:551344630048:web:87e485e712473a46234f45"
+};
+window.__SAVE_HISTORY_ON_SENDWA__ = true;
+// Ajuste aqui se o nome do comparador no seu GitHub for diferente:
+window.__COMPARADOR_URL__ = window.__COMPARADOR_URL__ || 'Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html';
+
+function initFirebaseIfNeeded(){
+  try{
+    if(!window.firebase) return null;
+    if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+    if(!firebase.firestore) return null;
+    return firebase.firestore();
+  }catch(e){
+    console.error('❌ Firebase init erro:', e);
+    return null;
+  }
+}
+
+function getRdoMeta(){
+  const dataVal = (document.getElementById('data')?.value) ? document.getElementById('data').value : new Date().toISOString().slice(0,10);
+  return {
+    data: dataVal,
+    turno: (document.getElementById('turno')?.value || ''),
+    operador: (document.getElementById('operador')?.value || ''),
+    equipe: (document.getElementById('equipe')?.value || ''),
+    preview: (document.getElementById('preview')?.innerText || '')
+  };
+}
+
+/**
+ * Salva SEM bloquear a abertura do WhatsApp.
+ * - Sempre atualiza o "documento ao vivo" rdo_operadores/live (para o Comparador pegar instantâneo).
+ * - Opcionalmente cria um registro histórico (add) quando for no clique do WhatsApp.
+ */
+function fireAndForgetFirestoreSave(text){
+  const db = initFirebaseIfNeeded();
+  if(!db){ console.warn('⚠️ Firestore não inicializado.'); return; }
+
+  const meta = getRdoMeta();
+
+  // 1) LIVE (sempre)
+  db.collection('rdo_operadores').doc('live').set({
+    text,
+    ...meta,
+    source: 'rdo_live_autosave',
+    updatedAt: new Date().toISOString(),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge:true }).then(()=>{
+    try{ localStorage.setItem('rdoLastSync', String(Date.now())); }catch(e){}
+  }).catch(e=>console.error('❌ Firestore LIVE erro:', e));
+
+  // 2) HISTÓRICO (somente no sendWA)
+  if(window.__SAVE_HISTORY_ON_SENDWA__){
+    db.collection('rdo_operadores').add({
+      text,
+      ...meta,
+      source: 'rdo_sendwa',
+      createdAt: new Date().toISOString(),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(e=>console.error('❌ Firestore HIST erro:', e));
+  }
+}
+
+// Autosave (digitou/alterou -> live no Firebase -> comparador recebe)
+let __autosaveTimer = null;
+function scheduleAutosave(){
+  clearTimeout(__autosaveTimer);
+  __autosaveTimer = setTimeout(()=>{
+    try{
+      window.__SAVE_HISTORY_ON_SENDWA__ = false; // não lota histórico
+      const text = buildTextReport();
+      if(text && text.trim()) fireAndForgetFirestoreSave(text);
+    }finally{
+      window.__SAVE_HISTORY_ON_SENDWA__ = true;
+    }
+  }, 650);
+}
+
+window.addEventListener('input', scheduleAutosave, true);
+window.addEventListener('change', scheduleAutosave, true);
+window.addEventListener('click', (e)=>{
+  // mudanças por clique (checkbox/card) também salvam
+  const t = e.target;
+  if(!t) return;
+  if(t.closest && (t.closest('button') || t.closest('a'))) return; // não atrapalhar botões
+  scheduleAutosave();
+}, true);
+
+// ==========================================================================
+
+
+ base =====
 const MAP = {
   "Sul 1": ["11CR12","11CV72","02CV002"],
   "Sul 2": ["11LK03","11CR14","02CV009","11CV68","11CV67","11CV07","11CR05","11CV69","Hopper 19","11CV73"],
