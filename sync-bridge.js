@@ -1,24 +1,22 @@
 // ============================================
-// BRIDGE DE SINCRONIZAÇÃO - VERSÃO ULTRA-ESTÁVEL
+// BRIDGE DE SINCRONIZAÇÃO - VERSÃO COM LOG CORRETO
 // ============================================
 
 // Configurações
 const CONFIG = {
     COLECTION: 'rdo_operadores',
-    CHECK_INTERVAL: 5000, // 5 segundos
-    RETRY_INTERVAL: 3000,  // 3 segundos
-    MAX_RETRIES: 999999,    // infinito
+    CHECK_INTERVAL: 5000,
+    RETRY_INTERVAL: 3000,
     MIN_TEXT_LENGTH: 20
 };
 
 // Estado
 let syncEnabled = true;
 let firebaseReady = false;
-let retryCount = 0;
 let lastSendTime = 0;
 let lastTextHash = '';
 
-// ===== LOG VISÍVEL =====
+// ===== LOG PANEL CORRIGIDO - CANTO INFERIOR DIREITO =====
 function addLogPanel() {
     if (document.getElementById('sync-log-panel')) return;
     
@@ -26,69 +24,230 @@ function addLogPanel() {
     panel.id = 'sync-log-panel';
     panel.style.cssText = `
         position: fixed;
-        top: 10px;
-        right: 10px;
-        width: 300px;
+        bottom: 20px;
+        right: 20px;
+        width: 320px;
         max-height: 400px;
-        overflow-y: auto;
         background: white;
-        border: 3px solid #005c8f;
-        border-radius: 10px;
-        padding: 10px;
+        border: 2px solid #005c8f;
+        border-radius: 12px;
+        padding: 12px;
         font-family: monospace;
         font-size: 11px;
-        z-index: 10000;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 999999;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        pointer-events: auto;
+        resize: both;
+        overflow: hidden;
     `;
     
     panel.innerHTML = `
-        <div style="font-weight:bold; color:#005c8f; margin-bottom:8px; display:flex; justify-content:space-between">
-            <span>📡 LOG DE SINCRONIZAÇÃO</span>
-            <span id="sync-connection-status" style="color:#ff9800">● CONECTANDO</span>
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #005c8f;
+            cursor: move;
+            background: white;
+        " id="sync-drag-handle">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-weight:bold; color:#005c8f; font-size:13px;">📡 LOG DE SINCRONIZAÇÃO</span>
+                <span id="sync-connection-status" style="color:#ff9800; font-size:10px;">● CONECTANDO</span>
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <button id="sync-minimize-btn" style="background:none; border:none; cursor:pointer; font-size:16px;">🗕</button>
+                <button id="sync-close-btn" style="background:none; border:none; cursor:pointer; font-size:16px;">✕</button>
+            </div>
         </div>
-        <div id="sync-log-messages" style="height:300px; overflow-y:auto; background:#f5f5f5; padding:5px; border-radius:5px"></div>
-        <div style="margin-top:8px; display:flex; gap:5px">
-            <button id="sync-reset-btn" style="flex:1; background:#005c8f; color:white; border:none; border-radius:5px; padding:5px; cursor:pointer">⟲ RESET</button>
-            <button id="sync-test-btn" style="flex:1; background:#28a745; color:white; border:none; border-radius:5px; padding:5px; cursor:pointer">🔍 TESTAR</button>
+        
+        <div id="sync-log-messages" style="
+            flex: 1;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            border: 1px solid #dee2e6;
+        "></div>
+        
+        <div style="
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px solid #dee2e6;
+        ">
+            <button id="sync-reset-btn" style="
+                flex: 1;
+                background: #005c8f;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 11px;
+                font-weight: bold;
+                cursor: pointer;
+            ">⟲ RESET</button>
+            
+            <button id="sync-test-btn" style="
+                flex: 1;
+                background: #28a745;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 11px;
+                font-weight: bold;
+                cursor: pointer;
+            ">🔍 TESTAR</button>
+            
+            <button id="sync-clear-btn" style="
+                flex: 0.5;
+                background: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 8px;
+                font-size: 11px;
+                font-weight: bold;
+                cursor: pointer;
+            ">🗑️</button>
         </div>
+        
+        <div style="
+            margin-top: 5px;
+            font-size: 9px;
+            color: #6c757d;
+            text-align: right;
+        " id="sync-last-update"></div>
     `;
     
     document.body.appendChild(panel);
     
-    // Botão de reset
+    // Tornar arrastável
+    makeDraggable(panel);
+    
+    // Botões
     document.getElementById('sync-reset-btn').onclick = () => {
-        logMessage('🔄 Reset manual...');
+        logMessage('🔄 Reset manual...', 'warning');
         localStorage.removeItem('firebase_initialized');
         setTimeout(() => window.location.reload(), 1000);
     };
     
-    // Botão de teste
     document.getElementById('sync-test-btn').onclick = testConnection;
+    
+    document.getElementById('sync-clear-btn').onclick = () => {
+        document.getElementById('sync-log-messages').innerHTML = '';
+        logMessage('🧹 Log limpo', 'info');
+    };
+    
+    document.getElementById('sync-close-btn').onclick = () => {
+        panel.style.display = 'none';
+    };
+    
+    document.getElementById('sync-minimize-btn').onclick = () => {
+        const messages = document.getElementById('sync-log-messages');
+        const isMinimized = messages.style.display === 'none';
+        messages.style.display = isMinimized ? 'block' : 'none';
+        document.getElementById('sync-minimize-btn').textContent = isMinimized ? '🗕' : '🗖';
+    };
+}
+
+// Função para tornar o painel arrastável
+function makeDraggable(element) {
+    const handle = document.getElementById('sync-drag-handle');
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    handle.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        offsetX = e.clientX - element.offsetLeft;
+        offsetY = e.clientY - element.offsetTop;
+        element.style.cursor = 'grabbing';
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        
+        let newX = e.clientX - offsetX;
+        let newY = e.clientY - offsetY;
+        
+        // Limites da janela
+        newX = Math.max(0, Math.min(window.innerWidth - element.offsetWidth, newX));
+        newY = Math.max(0, Math.min(window.innerHeight - element.offsetHeight, newY));
+        
+        element.style.left = newX + 'px';
+        element.style.top = newY + 'px';
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        element.style.cursor = 'default';
+    });
 }
 
 function logMessage(msg, type = 'info') {
     const logDiv = document.getElementById('sync-log-messages');
     if (!logDiv) return;
     
-    const time = new Date().toLocaleTimeString();
+    const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
     const colors = {
         info: '#0066cc',
         success: '#28a745',
         error: '#dc3545',
-        warning: '#ff9800'
+        warning: '#ff9800',
+        send: '#005c8f',
+        receive: '#8B4513'
+    };
+    
+    const icons = {
+        info: '📌',
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        send: '📤',
+        receive: '📥'
     };
     
     const entry = document.createElement('div');
     entry.style.cssText = `
-        margin: 2px 0;
-        padding: 2px;
-        border-bottom: 1px solid #eee;
-        color: ${colors[type] || '#333'};
+        margin: 3px 0;
+        padding: 4px 6px;
+        border-radius: 4px;
+        background: ${type === 'error' ? '#fff5f5' : 'transparent'};
+        border-left: 3px solid ${colors[type] || colors.info};
+        color: #1a1a1a;
+        word-break: break-word;
+        font-size: 11px;
+        transition: all 0.2s;
     `;
-    entry.textContent = `[${time}] ${msg}`;
+    
+    entry.innerHTML = `
+        <span style="color: #666; font-size: 10px;">[${time}]</span>
+        <span style="margin-left: 4px;">${icons[type] || ''}</span>
+        <span style="margin-left: 4px;">${msg}</span>
+    `;
     
     logDiv.appendChild(entry);
     logDiv.scrollTop = logDiv.scrollHeight;
+    
+    // Atualizar timestamp
+    const lastUpdate = document.getElementById('sync-last-update');
+    if (lastUpdate) {
+        lastUpdate.textContent = `Última atividade: ${time}`;
+    }
     
     console.log(`[SYNC] ${msg}`);
 }
@@ -101,77 +260,24 @@ function updateConnectionStatus(status, message) {
         connected: '#28a745',
         connecting: '#ff9800',
         error: '#dc3545',
-        disabled: '#999'
+        disabled: '#999',
+        sending: '#005c8f',
+        receiving: '#8B4513'
     };
     
-    statusEl.style.color = colors[status] || '#ff9800';
-    statusEl.textContent = `● ${message || status.toUpperCase()}`;
-}
-
-// ===== VERIFICAÇÃO DO FIREBASE =====
-async function ensureFirebase() {
-    return new Promise((resolve) => {
-        // Se já está pronto
-        if (window.firebase && window.firebase.firestore) {
-            logMessage('✅ Firebase já disponível');
-            firebaseReady = true;
-            updateConnectionStatus('connected', 'CONECTADO');
-            resolve(true);
-            return;
-        }
-        
-        logMessage('⏳ Aguardando Firebase...');
-        
-        // Carregar Firebase se necessário
-        const loadFirebase = () => {
-            if (document.querySelector('script[src*="firebase"]')) {
-                logMessage('⏳ Firebase carregando...');
-                setTimeout(() => {
-                    if (window.firebase) {
-                        logMessage('✅ Firebase carregado');
-                        firebaseReady = true;
-                        updateConnectionStatus('connected', 'CONECTADO');
-                        resolve(true);
-                    } else {
-                        retryCount++;
-                        if (retryCount < 10) {
-                            logMessage(`⏳ Tentativa ${retryCount}/10...`);
-                            setTimeout(loadFirebase, 2000);
-                        } else {
-                            logMessage('❌ Firebase não carregou', 'error');
-                            updateConnectionStatus('error', 'ERRO');
-                            resolve(false);
-                        }
-                    }
-                }, 2000);
-            } else {
-                logMessage('📥 Carregando Firebase...');
-                const script = document.createElement('script');
-                script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
-                script.onload = () => {
-                    const firestore = document.createElement('script');
-                    firestore.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
-                    firestore.onload = () => {
-                        logMessage('✅ Firebase scripts carregados');
-                        setTimeout(loadFirebase, 500);
-                    };
-                    document.head.appendChild(firestore);
-                };
-                document.head.appendChild(script);
-            }
-        };
-        
-        loadFirebase();
-    });
+    statusEl.style.color = colors[status] || colors.connecting;
+    statusEl.innerHTML = `● ${message || status.toUpperCase()}`;
 }
 
 // ===== TESTE DE CONEXÃO =====
 async function testConnection() {
     logMessage('🔍 Testando conexão...', 'info');
+    updateConnectionStatus('connecting', 'TESTANDO');
     
     if (!firebaseReady || !window.firebase) {
         logMessage('❌ Firebase não está pronto', 'error');
-        return;
+        updateConnectionStatus('error', 'ERRO');
+        return false;
     }
     
     try {
@@ -192,7 +298,7 @@ async function testConnection() {
 
 // ===== FUNÇÕES PARA RDO-CORREIAS =====
 async function initRDO() {
-    logMessage('📱 Inicializando RDO-Correias...');
+    logMessage('📱 Inicializando RDO-Correias...', 'info');
     
     // Aguardar Firebase
     const fbReady = await ensureFirebase();
@@ -209,7 +315,7 @@ async function initRDO() {
         
         if (preview) {
             clearInterval(waitForPreview);
-            logMessage('✅ Preview encontrado!');
+            logMessage('✅ Preview encontrado!', 'success');
             setupRDOMonitor(preview);
         } else if (attempts > 20) {
             clearInterval(waitForPreview);
@@ -219,7 +325,7 @@ async function initRDO() {
 }
 
 function setupRDOMonitor(previewElement) {
-    logMessage('🔍 Configurando monitores...');
+    logMessage('🔍 Configurando monitores...', 'info');
     
     // Função de envio
     const sendCurrentText = async () => {
@@ -235,69 +341,50 @@ function setupRDOMonitor(previewElement) {
             return;
         }
         
-        // Gerar hash simples para log
-        const hash = text.substring(0, 50).replace(/\s+/g, ' ');
-        
-        // Evitar spam (mínimo 2 segundos entre envios)
+        // Evitar spam (mínimo 3 segundos entre envios)
         const now = Date.now();
-        if (now - lastSendTime < 2000) {
-            logMessage('⏳ Aguardando intervalo entre envios...', 'info');
+        if (now - lastSendTime < 3000) {
             return;
         }
         
         lastSendTime = now;
-        logMessage(`📤 Enviando: "${hash}..."`, 'info');
+        
+        // Mostrar preview do que está enviando
+        const preview = text.split('\n')[0].substring(0, 60) + '...';
+        logMessage(`📤 Enviando: "${preview}"`, 'send');
+        updateConnectionStatus('sending', 'ENVIANDO');
         
         try {
             await sendToFirebase(text);
             logMessage('✅ Enviado com sucesso!', 'success');
+            updateConnectionStatus('connected', 'CONECTADO');
         } catch (error) {
             logMessage(`❌ Erro no envio: ${error.message}`, 'error');
+            updateConnectionStatus('error', 'ERRO');
         }
     };
     
-    // 1. Observer
+    // Observer
     const observer = new MutationObserver(() => {
         clearTimeout(window.sendTimeout);
-        window.sendTimeout = setTimeout(sendCurrentText, 1000);
+        window.sendTimeout = setTimeout(sendCurrentText, 1500);
     });
     
     observer.observe(previewElement, {
         childList: true,
         characterData: true,
-        subtree: true,
-        attributes: true
+        subtree: true
     });
     
-    // 2. Intervalo regular (a cada 10 segundos)
+    // Intervalo regular
     setInterval(() => {
         if (syncEnabled) {
-            logMessage('⏰ Envio periódico...');
+            logMessage('⏰ Envio periódico...', 'info');
             sendCurrentText();
         }
     }, 10000);
     
-    // 3. Botões
-    document.addEventListener('click', (e) => {
-        const btn = e.target.closest('button');
-        if (btn && ['sendWA', 'copyTxt', 'pngBtn', 'addEquip'].some(id => btn.id === id)) {
-            logMessage(`🖱️ Botão ${btn.id} clicado`);
-            setTimeout(sendCurrentText, 500);
-        }
-    });
-    
-    // 4. Inputs
-    document.addEventListener('change', (e) => {
-        if (e.target.matches('input[type="radio"]')) {
-            logMessage(`📻 Radio changed: ${e.target.name}`);
-            setTimeout(sendCurrentText, 300);
-        }
-    });
-    
-    // 5. Envio inicial
-    setTimeout(sendCurrentText, 2000);
-    
-    logMessage('✅ Monitores configurados!');
+    logMessage('✅ Monitores configurados!', 'success');
 }
 
 async function sendToFirebase(text) {
@@ -307,22 +394,15 @@ async function sendToFirebase(text) {
     
     const db = firebase.firestore();
     
-    // Extrair data do texto
+    // Extrair data
     const dataMatch = text.match(/Data:\s*(\d{4}-\d{2}-\d{2})/);
     const data = dataMatch ? dataMatch[1] : new Date().toISOString().split('T')[0];
-    
-    // Extrair equipamentos
-    const equipMatch = text.match(/🎯\s*([^\n]+)/g) || [];
-    const equipamentos = equipMatch.map(e => e.replace('🎯', '').trim());
     
     const docData = {
         text: text,
         data: data,
-        equipamentos: equipamentos,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        syncedAt: new Date().toISOString(),
-        device: /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-        userAgent: navigator.userAgent.substring(0, 100)
+        syncedAt: new Date().toISOString()
     };
     
     const docRef = await db.collection(CONFIG.COLECTION).add(docData);
@@ -333,7 +413,7 @@ async function sendToFirebase(text) {
 
 // ===== FUNÇÕES PARA COMPARADOR-V70 =====
 async function initComparador() {
-    logMessage('📊 Inicializando Comparador-V70...');
+    logMessage('📊 Inicializando Comparador-V70...', 'info');
     
     const fbReady = await ensureFirebase();
     if (!fbReady) return;
@@ -345,7 +425,7 @@ async function initComparador() {
         
         if (textarea) {
             clearInterval(waitForTextarea);
-            logMessage('✅ Textarea encontrada!');
+            logMessage('✅ Textarea encontrada!', 'success');
             setupComparadorListener(textarea);
         } else if (attempts > 20) {
             clearInterval(waitForTextarea);
@@ -355,59 +435,17 @@ async function initComparador() {
 }
 
 function setupComparadorListener(textarea) {
-    logMessage('🔍 Configurando listener do Firebase...');
+    logMessage('🔍 Configurando listener do Firebase...', 'info');
     
     let lastSyncTime = localStorage.getItem('lastComparadorSync') 
         ? new Date(localStorage.getItem('lastComparadorSync')) 
         : new Date(0);
     
-    // Função para buscar novos documentos
-    const fetchNewData = async () => {
-        if (!firebaseReady) return;
-        
-        try {
-            const db = firebase.firestore();
-            const snapshot = await db.collection(CONFIG.COLECTION)
-                .where('timestamp', '>', lastSyncTime)
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .get();
-            
-            if (!snapshot.empty) {
-                logMessage(`📥 ${snapshot.size} novo(s) documento(s)`);
-                
-                let added = 0;
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    if (appendToTextarea(textarea, data.text)) {
-                        added++;
-                    }
-                });
-                
-                if (added > 0) {
-                    logMessage(`✅ ${added} relatório(s) adicionado(s)`, 'success');
-                    lastSyncTime = new Date();
-                    localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
-                    
-                    // Auto-processar
-                    setTimeout(() => {
-                        if (typeof processOperadoresCompleto === 'function') {
-                            logMessage('⚙️ Processando automaticamente...');
-                            processOperadoresCompleto();
-                        }
-                    }, 2000);
-                }
-            }
-        } catch (error) {
-            logMessage(`❌ Erro ao buscar: ${error.message}`, 'error');
-        }
-    };
-    
     // Listener em tempo real
     const db = firebase.firestore();
     db.collection(CONFIG.COLECTION)
         .orderBy('timestamp', 'desc')
-        .limit(20)
+        .limit(10)
         .onSnapshot((snapshot) => {
             snapshot.docChanges().forEach(change => {
                 if (change.type === 'added') {
@@ -415,10 +453,16 @@ function setupComparadorListener(textarea) {
                     const docTime = data.timestamp?.toDate() || new Date(data.syncedAt);
                     
                     if (docTime > lastSyncTime) {
-                        logMessage(`📨 Novo documento em tempo real`);
+                        logMessage('📨 Novo relatório recebido!', 'receive');
+                        updateConnectionStatus('receiving', 'RECEBENDO');
+                        
                         if (appendToTextarea(textarea, data.text)) {
                             lastSyncTime = new Date();
                             localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
+                            
+                            setTimeout(() => {
+                                updateConnectionStatus('connected', 'CONECTADO');
+                            }, 2000);
                         }
                     }
                 }
@@ -426,15 +470,6 @@ function setupComparadorListener(textarea) {
         }, (error) => {
             logMessage(`❌ Erro no listener: ${error.message}`, 'error');
         });
-    
-    // Buscar a cada 10 segundos
-    setInterval(fetchNewData, 10000);
-    
-    // Buscar imediatamente
-    setTimeout(fetchNewData, 2000);
-    
-    // Adicionar botão de busca manual
-    addManualFetchButton(textarea);
 }
 
 function appendToTextarea(textarea, newText) {
@@ -442,7 +477,7 @@ function appendToTextarea(textarea, newText) {
     
     const currentText = textarea.value;
     
-    // Verificar se já existe (anti-duplicata básico)
+    // Anti-duplicata básico
     if (currentText.includes(newText.substring(0, 100))) {
         logMessage('📝 Conteúdo já existe, ignorando', 'info');
         return false;
@@ -458,85 +493,51 @@ function appendToTextarea(textarea, newText) {
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
     
-    // Rolar para o final
     textarea.scrollTop = textarea.scrollHeight;
     
     return true;
 }
 
-function addManualFetchButton(textarea) {
-    const btn = document.createElement('button');
-    btn.textContent = '🔄 BUSCAR RELATÓRIOS';
-    btn.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: #005c8f;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        padding: 15px 25px;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 10000;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-        cursor: pointer;
-        animation: pulse 2s infinite;
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); background: #0077b3; }
-            100% { transform: scale(1); }
+// ===== INICIALIZAÇÃO DO FIREBASE =====
+async function ensureFirebase() {
+    return new Promise((resolve) => {
+        if (window.firebase && window.firebase.firestore && firebase.apps.length > 0) {
+            logMessage('✅ Firebase já disponível', 'success');
+            firebaseReady = true;
+            updateConnectionStatus('connected', 'CONECTADO');
+            resolve(true);
+            return;
         }
-    `;
-    document.head.appendChild(style);
-    
-    btn.onclick = async () => {
-        btn.textContent = '⏳ BUSCANDO...';
-        btn.disabled = true;
         
-        try {
-            const db = firebase.firestore();
-            const snapshot = await db.collection(CONFIG.COLECTION)
-                .orderBy('timestamp', 'desc')
-                .limit(20)
-                .get();
+        logMessage('⏳ Aguardando Firebase...', 'info');
+        
+        // Tentar por 10 segundos
+        let attempts = 0;
+        const checkFirebase = setInterval(() => {
+            attempts++;
             
-            let count = 0;
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (appendToTextarea(textarea, data.text)) {
-                    count++;
-                }
-            });
-            
-            btn.textContent = `✅ ${count} ENCONTRADOS`;
-            setTimeout(() => {
-                btn.textContent = '🔄 BUSCAR RELATÓRIOS';
-                btn.disabled = false;
-            }, 3000);
-            
-        } catch (error) {
-            btn.textContent = '❌ ERRO';
-            setTimeout(() => {
-                btn.textContent = '🔄 BUSCAR RELATÓRIOS';
-                btn.disabled = false;
-            }, 3000);
-        }
-    };
-    
-    document.body.appendChild(btn);
+            if (window.firebase && window.firebase.firestore && firebase.apps.length > 0) {
+                clearInterval(checkFirebase);
+                logMessage('✅ Firebase disponível', 'success');
+                firebaseReady = true;
+                updateConnectionStatus('connected', 'CONECTADO');
+                resolve(true);
+            } else if (attempts > 20) {
+                clearInterval(checkFirebase);
+                logMessage('❌ Firebase não disponível', 'error');
+                updateConnectionStatus('error', 'ERRO');
+                resolve(false);
+            }
+        }, 500);
+    });
 }
 
 // ===== INICIALIZAÇÃO =====
 function init() {
     console.clear();
-    console.log('%c🔵 SISTEMA DE SINCRONIZAÇÃO ULTRA-ESTÁVEL', 'color: #005c8f; font-size: 16px; font-weight: bold');
+    console.log('%c🔵 SISTEMA DE SINCRONIZAÇÃO', 'color: #005c8f; font-size: 16px; font-weight: bold');
     
-    // Adicionar painel de log
+    // Adicionar painel de log NO CANTO INFERIOR DIREITO
     addLogPanel();
     
     // Detectar sistema
@@ -552,7 +553,7 @@ function init() {
     }
 }
 
-// Iniciar quando a página carregar
+// Iniciar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
