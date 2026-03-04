@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Integrado RDO - Samarco</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f3f6fb 0%, #eef2f7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            color: #005c8f;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,92,143,0.1);
+        }
+        
+        .header p {
+            color: #4b4b4b;
+            font-size: 1.1em;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border: 1px solid rgba(0,92,143,0.1);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0,92,143,0.15);
+            border-color: #005c8f;
+        }
+        
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: #005c8f;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        
+        .card p {
+            color: #4b4b4b;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .badge {
+            background: #e6f0f6;
+            color: #005c8f;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
+        }
+        
+        .status-bar {
+            margin-top: 40px;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #d5dde7;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+        
+        .indicator.offline {
+            background: #f44336;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Sistema Integrado RDO Samarco</h1>
+            <p>Coleta em campo + Análise inteligente em tempo real</p>
+        </div>
+        
+        <div class="cards">
+            <a href="rdo-correias.html" class="card">
+                <div class="card-icon">📱</div>
+                <h2>RDO-Correias</h2>
+                <p>Sistema de inspeção em campo para operadores. Coleta checklist, fotos e gera relatórios automaticamente.</p>
+                <div class="badge">✓ Check-list completo</div>
+                <div class="badge">📸 Captura de fotos</div>
+                <div class="badge">📤 Compartilhamento</div>
+            </a>
+            
+            <a href="comparador-v70.html" class="card">
+                <div class="card-icon">📊</div>
+                <h2>Comparador-V70</h2>
+                <p>Análise avançada comparando dados dos operadores com MES. Gera gráficos, heatmaps e relatórios gerenciais.</p>
+                <div class="badge">📈 Análise comparativa</div>
+                <div class="badge">🔥 Heatmaps</div>
+                <div class="badge">📊 Pareto</div>
+            </a>
+        </div>
+        
+        <div class="status-bar">
+            <h3 style="color: #005c8f; margin-bottom: 15px;">📡 Status da Sincronização</h3>
+            <div class="status-item">
+                <span class="indicator" id="statusRDO"></span>
+                <span><strong>RDO-Correias:</strong> <span id="rdoStatus">Conectado e sincronizando...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="indicator" id="statusComparador"></span>
+                <span><strong>Comparador-V70:</strong> <span id="comparadorStatus">Aguardando conexão...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="indicator"></span>
+                <span><strong>Última sincronização:</strong> <span id="lastSync">-</span></span>
+            </div>
+            <div class="status-item">
+                <span class="indicator"></span>
+                <span><strong>Firebase:</strong> <span id="firebaseStatus">Online</span></span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>⚡ Sistema integrado via Firebase - Dados sincronizados em tempo real</p>
+            <p style="margin-top: 10px; font-size: 0.8em;">Os sistemas originais permanecem intactos, apenas a sincronização foi adicionada</p>
+        </div>
+    </div>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+    <script>
+        // Atualizar status na página inicial
+        function updateIndexStatus() {
+            const rdoIndicator = document.getElementById('statusRDO');
+            const comparadorIndicator = document.getElementById('statusComparador');
+            const lastSyncSpan = document.getElementById('lastSync');
+            
+            // Verificar status baseado no localStorage (compartilhado entre páginas)
+            const rdoLastSync = localStorage.getItem('rdoLastSync');
+            const comparadorLastSync = localStorage.getItem('comparadorLastSync');
+            
+            if (rdoLastSync) {
+                rdoIndicator.style.background = '#4caf50';
+                document.getElementById('rdoStatus').textContent = 'Online - Último envio: ' + new Date(rdoLastSync).toLocaleTimeString();
+            }
+            
+            if (comparadorLastSync) {
+                comparadorIndicator.style.background = '#4caf50';
+                document.getElementById('comparadorStatus').textContent = 'Online - Última atualização: ' + new Date(comparadorLastSync).toLocaleTimeString();
+            }
+            
+            const lastSync = localStorage.getItem('lastComparadorSync');
+            if (lastSync) {
+                lastSyncSpan.textContent = new Date(lastSync).toLocaleString();
+            } else {
+                lastSyncSpan.textContent = 'Nunca';
+            }
+            
+            // Atualizar a cada 5 segundos
+            setTimeout(updateIndexStatus, 5000);
+        }
+        
+        updateIndexStatus();
+    </script>
+</body>
+</html>
