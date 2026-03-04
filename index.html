@@ -3,726 +3,270 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDO Sync - Naza Audit | Samarco</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <title>Sistema Integrado RDO - Samarco</title>
     <style>
-        :root {
-            --sam-blue: #005c8f;
-            --sam-green: #3a9d5d;
-            --sam-orange: #f7941d;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
+        
         body {
-            background: linear-gradient(135deg, #f3f6fb 0%, #e6f0f6 100%);
+            background: linear-gradient(135deg, #f3f6fb 0%, #eef2f7 100%);
             min-height: 100vh;
-        }
-        .header {
-            background: linear-gradient(100deg, var(--sam-blue), #2d6acb);
-            color: white;
-            padding: 20px;
-            border-radius: 0 0 20px 20px;
-            box-shadow: 0 10px 40px rgba(0,92,143,0.3);
-        }
-        .sync-card {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-            border: 1px solid #d5dde7;
-            transition: transform 0.3s ease;
-        }
-        .sync-card:hover {
-            transform: translateY(-4px);
-        }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 8px;
-        }
-        .status-online { background: var(--sam-green); box-shadow: 0 0 8px var(--sam-green); }
-        .status-syncing { background: var(--sam-orange); animation: pulse 1s infinite; }
-        .status-offline { background: #dc3545; }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .queue-item {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 4px solid var(--sam-blue);
-            transition: all 0.3s ease;
-        }
-        .queue-item.processed {
-            border-left-color: var(--sam-green);
-            opacity: 0.7;
-        }
-        .queue-item.processing {
-            border-left-color: var(--sam-orange);
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(-20px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        .btn-sam {
-            background: var(--sam-blue);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            padding: 12px 24px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-sam:hover {
-            background: #00476e;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0,92,143,0.4);
-        }
-        
-        .floating-sync {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: var(--sam-blue);
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            box-shadow: 0 8px 32px rgba(0,92,143,0.4);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            z-index: 1000;
-        }
-        .floating-sync:hover {
-            transform: scale(1.1);
-            background: var(--sam-green);
-        }
-        .floating-sync.syncing {
-            animation: spin 1s linear infinite;
-            background: var(--sam-orange);
+            padding: 20px;
         }
         
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+        .container {
+            max-width: 1200px;
+            width: 100%;
         }
         
-        .toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
         }
         
-        .sync-bridge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .header h1 {
+            color: #005c8f;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,92,143,0.1);
+        }
+        
+        .header p {
+            color: #4b4b4b;
+            font-size: 1.1em;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+            border: 1px solid rgba(0,92,143,0.1);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 60px rgba(0,92,143,0.15);
+            border-color: #005c8f;
+        }
+        
+        .card-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .card h2 {
+            color: #005c8f;
+            margin-bottom: 15px;
+            font-size: 1.8em;
+        }
+        
+        .card p {
+            color: #4b4b4b;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .badge {
+            background: #e6f0f6;
+            color: #005c8f;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: inline-block;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .status-bar {
+            margin-top: 40px;
+            background: white;
             border-radius: 16px;
             padding: 20px;
+            border: 1px solid #d5dde7;
         }
         
-        .stats-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
         }
-        .stats-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: var(--sam-blue);
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4caf50;
+        }
+        
+        .indicator.offline {
+            background: #f44336;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .file-list {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        
+        .file-list strong {
+            color: #005c8f;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header mb-4">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="mb-0"><i class="fas fa-sync-alt me-3"></i>RDO Sync - Naza Audit</h1>
-                    <p class="mb-0 mt-2 opacity-75">Sincronização automática entre RDO-Operadores e Comparador-V70</p>
-                </div>
-                <div class="text-end">
-                    <div class="badge bg-light text-dark p-2">
-                        <span class="status-indicator" id="cloudStatus"></span>
-                        <span id="statusText">Conectando...</span>
-                    </div>
-                    <div class="small mt-2" id="lastSync">Última sincronização: --</div>
-                </div>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Sistema Integrado RDO Samarco</h1>
+            <p>Coleta em campo + Análise em tempo real</p>
+        </div>
+        
+        <div class="cards">
+            <!-- RDO-Correias com o nome EXATAMENTE como está no GitHub -->
+            <a href="Correias-RDO-multi-v1.3f-3fnal%20(5).html" class="card">
+                <div class="card-icon">📱</div>
+                <h2>RDO-Correias</h2>
+                <p>Sistema de inspeção em campo para operadores. Coleta checklist, fotos e gera relatórios automaticamente.</p>
+                <span class="badge">✓ Check-list completo</span>
+                <span class="badge">📸 Captura de fotos</span>
+                <span class="badge">📤 Compartilhamento</span>
+            </a>
+            
+            <!-- Comparador-V70 com o nome EXATAMENTE como está no GitHub -->
+            <a href="Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html" class="card">
+                <div class="card-icon">📊</div>
+                <h2>Comparador-V70</h2>
+                <p>Análise avançada comparando dados dos operadores com MES. Gera gráficos, heatmaps e relatórios gerenciais.</p>
+                <span class="badge">📈 Análise comparativa</span>
+                <span class="badge">🔥 Heatmaps</span>
+                <span class="badge">📊 Pareto</span>
+            </a>
+        </div>
+        
+        <div class="status-bar">
+            <h3 style="color: #005c8f; margin-bottom: 15px;">📡 Status da Sincronização</h3>
+            <div class="status-item">
+                <span class="indicator" id="statusRDO"></span>
+                <span><strong>RDO-Correias:</strong> <span id="rdoStatus">Conectado e sincronizando...</span></span>
             </div>
+            <div class="status-item">
+                <span class="indicator" id="statusComparador"></span>
+                <span><strong>Comparador-V70:</strong> <span id="comparadorStatus">Aguardando conexão...</span></span>
+            </div>
+            <div class="status-item">
+                <span class="indicator"></span>
+                <span><strong>Última sincronização:</strong> <span id="lastSync">-</span></span>
+            </div>
+            <div class="status-item">
+                <span class="indicator"></span>
+                <span><strong>Firebase:</strong> <span id="firebaseStatus">Online</span></span>
+            </div>
+        </div>
+        
+        <div class="file-list">
+            <strong>📁 Arquivos no seu repositório:</strong><br>
+            • Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS (2).html<br>
+            • Correias-RDO-multi-v1.3f-3fnal (5).html<br>
+            • firebase-config.js<br>
+            • index.html<br>
+            • sync-bridge.js
+        </div>
+        
+        <div class="footer">
+            <p>⚡ Sistema integrado via Firebase - Dados sincronizados em tempo real</p>
+            <p style="margin-top: 10px; font-size: 0.8em;">Links atualizados com os nomes exatos dos arquivos</p>
         </div>
     </div>
-
-    <div class="container pb-5">
-        <!-- Stats Row -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-number" id="statTotal">0</div>
-                    <div class="text-muted small">Total RDOs</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-number text-warning" id="statPendentes">0</div>
-                    <div class="text-muted small">Pendentes</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-number text-success" id="statProcessados">0</div>
-                    <div class="text-muted small">Processados</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stats-card">
-                    <div class="stats-number text-info" id="statHoje">0</div>
-                    <div class="text-muted small">Hoje</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="row g-4">
-            <!-- Left: RDO Input -->
-            <div class="col-lg-5">
-                <div class="sync-card p-4 h-100">
-                    <h5 class="mb-3"><i class="fas fa-clipboard-list text-primary me-2"></i>Novo RDO - Operadores</h5>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Sistema</label>
-                        <select class="form-select" id="inputSistema">
-                            <option value="">Selecione...</option>
-                            <option value="Sul 1">🟦 Sul 1</option>
-                            <option value="Sul 2">🟩 Sul 2</option>
-                            <option value="Centro">🟨 Centro</option>
-                            <option value="Norte">🟥 Norte</option>
-                            <option value="Fazendão">🟪 Fazendão</option>
-                        </select>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Texto do RDO (cole aqui)</label>
-                        <textarea class="form-control" id="inputRDO" rows="8" 
-                            placeholder="Cole o relatório dos operadores aqui...
-                            
-Exemplo:
-🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS
-├─ Data: 2025-12-01
-├─ Turno: D
-├─ Operador: João
-└─ Equipe: Maria, Pedro, Ana
-├─ 🎯 11CR13 — Sistema centro
-│  ├─ Sistema: Centro
-│  ├─ 🔴 Críticos
-│  │  - Roletes/tambores: OK
-│  │  - Alinhamento: NÃO OK
-│  └─ 📝 Falta da bomba hidráulica"></textarea>
-                    </div>
-                    
-                    <div class="d-grid gap-2">
-                        <button class="btn btn-sam" id="btnEnviarWhatsApp">
-                            <i class="fab fa-whatsapp me-2"></i>Enviar WhatsApp + Copiar
-                        </button>
-                        <button class="btn btn-outline-primary" id="btnCopiarOnly">
-                            <i class="fas fa-copy me-2"></i>Só Copiar para Comparador
-                        </button>
-                    </div>
-                    
-                    <div class="mt-3 p-3 bg-light rounded">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Ao clicar em "Enviar WhatsApp + Copiar", o texto será:
-                            <ol class="mb-0 mt-1 ps-3">
-                                <li>Copiado automaticamente para a área de transferência</li>
-                                <li>Enviado para o WhatsApp</li>
-                                <li>Sincronizado com o Comparador-V70</li>
-                            </ol>
-                        </small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Sync Queue -->
-            <div class="col-lg-7">
-                <div class="sync-card p-4 h-100">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-exchange-alt text-primary me-2"></i>Fila de Sincronização</h5>
-                        <div>
-                            <button class="btn btn-sm btn-outline-success" id="btnProcessarTodos">
-                                <i class="fas fa-play me-1"></i>Processar Todos
-                            </button>
-                            <button class="btn btn-sm btn-outline-danger ms-2" id="btnLimparFila">
-                                <i class="fas fa-trash me-1"></i>Limpar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div id="syncQueue" style="max-height: 400px; overflow-y: auto;">
-                        <div class="text-center text-muted py-5">
-                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                            <p>Nenhum RDO na fila de sincronização</p>
-                            <small>Cole um RDO à esquerda para começar</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Bridge Status -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="sync-bridge">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-1"><i class="fas fa-bridge me-2"></i>Ponte de Sincronização Automática</h5>
-                            <p class="mb-0 opacity-75">Os dados são sincronizados em tempo real entre todos os dispositivos conectados</p>
-                        </div>
-                        <div class="text-end">
-                            <div class="badge bg-light text-dark p-2 mb-2">
-                                <i class="fas fa-wifi me-1"></i>Firebase Realtime
-                            </div>
-                            <div class="small">ID da Sessão: <span id="sessionId" class="font-monospace">--</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Links Rápidos -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <h6 class="mb-3">Acesso Rápido aos Sistemas</h6>
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="rdo-operadores.html" class="btn btn-outline-primary">
-                        <i class="fas fa-clipboard-check me-2"></i>RDO-Operadores (Completo)
-                    </a>
-                    <a href="comparador-v70.html" class="btn btn-outline-primary">
-                        <i class="fas fa-chart-bar me-2"></i>Comparador-V70
-                    </a>
-                    <a href="gestao-correias.html" class="btn btn-outline-primary">
-                        <i class="fas fa-conveyor-belt me-2"></i>Gestão de Correias
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Floating Sync Button -->
-    <div class="floating-sync" id="btnSyncNow" title="Sincronizar Agora">
-        <i class="fas fa-sync-alt"></i>
-    </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
+    
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     
     <script>
-        // ===== CONFIGURAÇÃO FIREBASE =====
-        const firebaseConfig = {
-            apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5BDg_bOfG8kHJQ",
-            authDomain: "rdo-sync.firebaseapp.com",
-            projectId: "rdo-sync",
-            storageBucket: "rdo-sync.firebasestorage.app",
-            messagingSenderId: "551344630048",
-            appId: "1:551344630048:web:87e485e712473a46234f45"
-        };
-
-        // Inicializar Firebase
-        let db;
-        let syncQueue = [];
-        const SESSION_ID = 'SYNC-' + Date.now().toString(36).toUpperCase();
+        // Atualizar status na página inicial
+        function updateIndexStatus() {
+            const rdoIndicator = document.getElementById('statusRDO');
+            const comparadorIndicator = document.getElementById('statusComparador');
+            const lastSyncSpan = document.getElementById('lastSync');
+            
+            // Verificar status baseado no localStorage (compartilhado entre páginas)
+            const rdoLastSync = localStorage.getItem('rdoLastSync');
+            const comparadorLastSync = localStorage.getItem('comparadorLastSync');
+            
+            if (rdoLastSync) {
+                rdoIndicator.style.background = '#4caf50';
+                document.getElementById('rdoStatus').textContent = 'Online - Último envio: ' + new Date(rdoLastSync).toLocaleTimeString();
+            }
+            
+            if (comparadorLastSync) {
+                comparadorIndicator.style.background = '#4caf50';
+                document.getElementById('comparadorStatus').textContent = 'Online - Última atualização: ' + new Date(comparadorLastSync).toLocaleTimeString();
+            }
+            
+            const lastSync = localStorage.getItem('lastComparadorSync');
+            if (lastSync) {
+                lastSyncSpan.textContent = new Date(lastSync).toLocaleString();
+            } else {
+                lastSyncSpan.textContent = 'Nunca';
+            }
+            
+            // Atualizar a cada 5 segundos
+            setTimeout(updateIndexStatus, 5000);
+        }
         
-        try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            console.log('✅ Firebase conectado');
-            updateStatus('online', 'Conectado à nuvem');
-        } catch (e) {
-            console.error('❌ Erro Firebase:', e);
-            updateStatus('offline', 'Modo offline');
-        }
-
-        // ===== FUNÇÕES DE STATUS =====
-        function updateStatus(type, text) {
-            const indicator = document.getElementById('cloudStatus');
-            const statusText = document.getElementById('statusText');
-            
-            indicator.className = 'status-indicator status-' + type;
-            statusText.textContent = text;
-            
-            document.getElementById('sessionId').textContent = SESSION_ID;
-        }
-
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = `alert alert-${type} alert-dismissible fade show`;
-            toast.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 5000);
-        }
-
-        // ===== FUNÇÕES DE SINCRONIZAÇÃO =====
-        async function addToQueue(rdoText, sistema) {
-            const item = {
-                id: Date.now().toString(36),
-                timestamp: new Date().toISOString(),
-                sistema: sistema || 'Não identificado',
-                texto: rdoText,
-                status: 'pending', // pending, processing, processed, error
-                origem: SESSION_ID
-            };
-            
-            syncQueue.unshift(item);
-            updateQueueDisplay();
-            updateStats();
-            
-            // Salvar no Firebase
-            if (db) {
-                try {
-                    await db.collection('rdo_queue').doc(item.id).set(item);
-                    console.log('✅ Item salvo na nuvem:', item.id);
-                } catch (e) {
-                    console.warn('⚠️ Erro ao salvar na nuvem:', e);
-                }
-            }
-            
-            return item;
-        }
-
-        function updateQueueDisplay() {
-            const container = document.getElementById('syncQueue');
-            
-            if (syncQueue.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                        <p>Nenhum RDO na fila de sincronização</p>
-                        <small>Cole um RDO à esquerda para começar</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = syncQueue.map(item => `
-                <div class="queue-item ${item.status}" data-id="${item.id}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge bg-${getStatusColor(item.status)}">${getStatusLabel(item.status)}</span>
-                                <small class="text-muted">${formatTime(item.timestamp)}</small>
-                                <span class="badge bg-secondary">${item.sistema}</span>
-                            </div>
-                            <div class="small text-truncate" style="max-width: 400px;">
-                                ${item.texto.substring(0, 100)}...
-                            </div>
-                        </div>
-                        <div class="btn-group btn-group-sm">
-                            ${item.status === 'pending' ? `
-                                <button class="btn btn-outline-primary" onclick="processItem('${item.id}')">
-                                    <i class="fas fa-play"></i>
-                                </button>
-                            ` : ''}
-                            <button class="btn btn-outline-secondary" onclick="copyItem('${item.id}')">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                            <button class="btn btn-outline-danger" onclick="removeItem('${item.id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    ${item.status === 'processing' ? `
-                        <div class="progress mt-2" style="height: 4px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
-                        </div>
-                    ` : ''}
-                </div>
-            `).join('');
-        }
-
-        function getStatusColor(status) {
-            const colors = {
-                pending: 'warning',
-                processing: 'info',
-                processed: 'success',
-                error: 'danger'
-            };
-            return colors[status] || 'secondary';
-        }
-
-        function getStatusLabel(status) {
-            const labels = {
-                pending: 'Pendente',
-                processing: 'Processando',
-                processed: 'Processado',
-                error: 'Erro'
-            };
-            return labels[status] || status;
-        }
-
-        function formatTime(iso) {
-            const d = new Date(iso);
-            return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        function updateStats() {
-            const total = syncQueue.length;
-            const pendentes = syncQueue.filter(i => i.status === 'pending').length;
-            const processados = syncQueue.filter(i => i.status === 'processed').length;
-            const hoje = syncQueue.filter(i => {
-                const d = new Date(i.timestamp);
-                const now = new Date();
-                return d.toDateString() === now.toDateString();
-            }).length;
-            
-            document.getElementById('statTotal').textContent = total;
-            document.getElementById('statPendentes').textContent = pendentes;
-            document.getElementById('statProcessados').textContent = processados;
-            document.getElementById('statHoje').textContent = hoje;
-        }
-
-        // ===== AÇÕES DOS ITENS =====
-        async function processItem(id) {
-            const item = syncQueue.find(i => i.id === id);
-            if (!item) return;
-            
-            item.status = 'processing';
-            updateQueueDisplay();
-            
-            // Simular processamento
-            await new Promise(r => setTimeout(r, 1500));
-            
-            // Aqui você pode adicionar a lógica real de processamento
-            // Por exemplo, enviar para uma API do Comparador-V70
-            
-            item.status = 'processed';
-            item.processedAt = new Date().toISOString();
-            updateQueueDisplay();
-            updateStats();
-            
-            // Atualizar no Firebase
-            if (db) {
-                await db.collection('rdo_queue').doc(id).update({
-                    status: 'processed',
-                    processedAt: item.processedAt
-                });
-            }
-            
-            showToast('RDO processado com sucesso!', 'success');
-        }
-
-        async function copyItem(id) {
-            const item = syncQueue.find(i => i.id === id);
-            if (!item) return;
-            
-            try {
-                await navigator.clipboard.writeText(item.texto);
-                showToast('Texto copiado para a área de transferência!', 'success');
-            } catch (e) {
-                // Fallback
-                const textarea = document.createElement('textarea');
-                textarea.value = item.texto;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                showToast('Texto copiado!', 'success');
-            }
-        }
-
-        async function removeItem(id) {
-            if (!confirm('Remover este item da fila?')) return;
-            
-            syncQueue = syncQueue.filter(i => i.id !== id);
-            updateQueueDisplay();
-            updateStats();
-            
-            if (db) {
-                await db.collection('rdo_queue').doc(id).delete();
-            }
-        }
-
-        // ===== BOTÃO WHATSAPP + COPIAR =====
-        document.getElementById('btnEnviarWhatsApp').addEventListener('click', async () => {
-            const texto = document.getElementById('inputRDO').value.trim();
-            const sistema = document.getElementById('inputSistema').value;
-            
-            if (!texto) {
-                showToast('Cole o texto do RDO primeiro!', 'warning');
-                return;
-            }
-            
-            // 1. Copiar para área de transferência
-            try {
-                await navigator.clipboard.writeText(texto);
-            } catch (e) {
-                const textarea = document.createElement('textarea');
-                textarea.value = texto;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-            }
-            
-            // 2. Adicionar à fila de sincronização
-            await addToQueue(texto, sistema);
-            
-            // 3. Abrir WhatsApp
-            const url = 'https://wa.me/?text=' + encodeURIComponent(texto.substring(0, 4000));
-            window.open(url, '_blank');
-            
-            // 4. Limpar input
-            document.getElementById('inputRDO').value = '';
-            
-            showToast('✅ RDO copiado, sincronizado e WhatsApp aberto!', 'success');
-        });
-
-        document.getElementById('btnCopiarOnly').addEventListener('click', async () => {
-            const texto = document.getElementById('inputRDO').value.trim();
-            const sistema = document.getElementById('inputSistema').value;
-            
-            if (!texto) {
-                showToast('Cole o texto do RDO primeiro!', 'warning');
-                return;
-            }
-            
-            await addToQueue(texto, sistema);
-            
-            try {
-                await navigator.clipboard.writeText(texto);
-            } catch (e) {
-                const textarea = document.createElement('textarea');
-                textarea.value = texto;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-            }
-            
-            document.getElementById('inputRDO').value = '';
-            showToast('✅ RDO copiado e sincronizado!', 'success');
-        });
-
-        // ===== BOTÕES DA FILA =====
-        document.getElementById('btnProcessarTodos').addEventListener('click', async () => {
-            const pendentes = syncQueue.filter(i => i.status === 'pending');
-            for (const item of pendentes) {
-                await processItem(item.id);
-                await new Promise(r => setTimeout(r, 500)); // Delay entre processamentos
-            }
-        });
-
-        document.getElementById('btnLimparFila').addEventListener('click', async () => {
-            if (!confirm('Limpar todos os itens da fila?')) return;
-            
-            // Remover do Firebase
-            if (db) {
-                const batch = db.batch();
-                syncQueue.forEach(item => {
-                    batch.delete(db.collection('rdo_queue').doc(item.id));
-                });
-                await batch.commit();
-            }
-            
-            syncQueue = [];
-            updateQueueDisplay();
-            updateStats();
-            showToast('Fila limpa!', 'info');
-        });
-
-        // ===== SINCRONIZAÇÃO EM TEMPO REAL =====
-        if (db) {
-            db.collection('rdo_queue')
-                .orderBy('timestamp', 'desc')
-                .limit(50)
-                .onSnapshot(snapshot => {
-                    const changes = snapshot.docChanges();
-                    let shouldUpdate = false;
-                    
-                    changes.forEach(change => {
-                        const data = { id: change.doc.id, ...change.doc.data() };
-                        
-                        if (change.type === 'added') {
-                            // Evitar duplicados
-                            if (!syncQueue.find(i => i.id === data.id)) {
-                                syncQueue.unshift(data);
-                                shouldUpdate = true;
-                            }
-                        } else if (change.type === 'modified') {
-                            const idx = syncQueue.findIndex(i => i.id === data.id);
-                            if (idx !== -1) {
-                                syncQueue[idx] = data;
-                                shouldUpdate = true;
-                            }
-                        } else if (change.type === 'removed') {
-                            syncQueue = syncQueue.filter(i => i.id !== data.id);
-                            shouldUpdate = true;
-                        }
-                    });
-                    
-                    if (shouldUpdate) {
-                        updateQueueDisplay();
-                        updateStats();
-                        document.getElementById('lastSync').textContent = 
-                            'Última sincronização: ' + new Date().toLocaleTimeString('pt-BR');
-                    }
-                }, err => {
-                    console.error('Erro no listener:', err);
-                    updateStatus('offline', 'Erro de conexão');
-                });
-        }
-
-        // ===== SYNC MANUAL =====
-        document.getElementById('btnSyncNow').addEventListener('click', async () => {
-            const btn = document.getElementById('btnSyncNow');
-            btn.classList.add('syncing');
-            
-            // Forçar recarregamento do Firebase
-            if (db) {
-                try {
-                    const snapshot = await db.collection('rdo_queue')
-                        .orderBy('timestamp', 'desc')
-                        .limit(50)
-                        .get();
-                    
-                    syncQueue = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
-                    }));
-                    
-                    updateQueueDisplay();
-                    updateStats();
-                    showToast('Sincronização completa!', 'success');
-                } catch (e) {
-                    showToast('Erro na sincronização: ' + e.message, 'danger');
-                }
-            }
-            
-            setTimeout(() => btn.classList.remove('syncing'), 1000);
-        });
-
-        // Inicializar
-        updateQueueDisplay();
-        updateStats();
+        updateIndexStatus();
     </script>
+        <div class="footer">
+        ...
+    </div>
+    
+    <!-- Injetor de Sincronização -->
+    <script src="injetar-sincronizacao.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    
+</body>
+</html>
 </body>
 </html>
