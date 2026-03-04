@@ -153,7 +153,17 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        
+<div style="position:sticky;top:0;z-index:999;background:rgba(243,246,251,.92);backdrop-filter:blur(6px);
+padding:10px 0;margin-bottom:14px;">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;">
+    <button id="btnTop" style="border:none;background:#ffffff;border:1px solid #d5dde7;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer;">⬆️ Topo</button>
+    <a href="index.html" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">🏠 Início</a>
+    <a id="btnOpenRDO" href="#" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">📱 Abrir RDO</a>
+    <a id="btnOpenComp" href="#" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">📊 Abrir Comparador</a>
+  </div>
+</div>
+<div class="header">
             <h1>⚡ Sistema Integrado RDO Samarco</h1>
             <p>Coleta em campo + Análise em tempo real</p>
         </div>
@@ -268,5 +278,78 @@
     
 </body>
 </html>
+
+<script>
+(function(){
+  // Botões topo
+  document.getElementById('btnTop')?.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+  const rdoHref = "Correias-RDO-multi-v1.3f-3fnal%20(5).html";
+  const compHref = "Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html";
+  const aR = document.getElementById('btnOpenRDO'); if(aR && rdoHref) aR.href = rdoHref;
+  const aC = document.getElementById('btnOpenComp'); if(aC && compHref) aC.href = compHref;
+
+  function set(id, txt){
+    const el = document.getElementById(id);
+    if(el) el.textContent = txt;
+  }
+  function setIndicator(id, online){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.classList.toggle('offline', !online);
+  }
+
+  // Status por localStorage (compatível) + Firestore (mais confiável)
+  function updateFromLocal(){
+    try{
+      const rdoLastSync = localStorage.getItem('rdoLastSync');
+      const compLastSync = localStorage.getItem('comparadorLastSync');
+      if(rdoLastSync){
+        setIndicator('statusRDO', true);
+        set('rdoStatus','Online - Último envio: ' + new Date(Number(rdoLastSync)).toLocaleTimeString('pt-BR'));
+      }
+      if(compLastSync){
+        setIndicator('statusComparador', true);
+        set('comparadorStatus','Online - Última atualização: ' + new Date(Number(compLastSync)).toLocaleTimeString('pt-BR'));
+      }
+    }catch(e){}
+  }
+
+  function initFB(){
+    try{
+      if(!window.firebase) return null;
+      if(!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) return null;
+      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
+      return firebase.firestore();
+    }catch(e){ console.warn('Firebase init falhou', e); return null; }
+  }
+
+  function listenFirestore(){
+    const db = initFB();
+    if(!db) return;
+    db.collection('rdo_operadores').orderBy('timestamp','desc').limit(1).onSnapshot((snap)=>{
+      if(!snap || snap.empty) return;
+      const d = snap.docs[0].data()||{};
+      setIndicator('statusRDO', true);
+      set('rdoStatus','Conectado e sincronizando…');
+      const now = new Date().toLocaleString('pt-BR');
+      set('lastSync', now);
+      // Se existir comparador aberto, ele atualiza o próprio status via localStorage
+      // Aqui mostramos que já existe dado novo pronto para o comparador processar
+      const hasComp = !!(localStorage.getItem('comparadorLastSync'));
+      setIndicator('statusComparador', hasComp);
+      set('comparadorStatus', hasComp ? 'Online - pronto' : 'Aguardando abertura… (auto ao abrir)');
+      set('firebaseStatus','Online');
+    }, (err)=>{
+      console.error('Firestore listener erro', err);
+      set('firebaseStatus','Erro');
+    });
+  }
+
+  updateFromLocal();
+  listenFirestore();
+  setInterval(updateFromLocal, 3000);
+})();
+</script>
+
 </body>
 </html>
