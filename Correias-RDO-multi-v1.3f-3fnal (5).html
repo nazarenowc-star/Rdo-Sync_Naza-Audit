@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDO - Relatório Diário de Obra</title>
+    <title>RDO Operadores - Entrada de Dados</title>
     <style>
         * {
             margin: 0;
@@ -11,1315 +11,512 @@
             box-sizing: border-box;
         }
 
-        :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --secondary: #64748b;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --bg: #f1f5f9;
-            --card: #ffffff;
-            --text: #1e293b;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-        }
-
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #f3f6fb 0%, #eef2f7 100%);
+            min-height: 100vh;
             padding: 20px;
         }
 
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #005c8f 0%, #2d6acb 100%);
             color: white;
-            padding: 2rem;
-            border-radius: 16px;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,92,143,0.2);
+            text-align: center;
         }
 
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 300px;
-            height: 300px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 50%;
-            animation: pulse 4s ease-in-out infinite;
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 0.5; }
-            50% { transform: scale(1.1); opacity: 0.3; }
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            position: relative;
-            z-index: 1;
-        }
-
-        .subtitle {
+        .header p {
             opacity: 0.9;
-            position: relative;
-            z-index: 1;
+            font-size: 16px;
         }
 
-        .sync-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--card);
-            padding: 12px 20px;
-            border-radius: 50px;
-            box-shadow: var(--shadow);
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+            border: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #005c8f;
+            margin-bottom: 15px;
+            font-size: 20px;
             display: flex;
             align-items: center;
             gap: 10px;
-            z-index: 1000;
-            border: 2px solid transparent;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 400px;
+            padding: 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #fafbfc;
             transition: all 0.3s;
         }
 
-        .sync-status.syncing {
-            border-color: var(--warning);
-            animation: pulse-border 1.5s infinite;
+        textarea:focus {
+            outline: none;
+            border-color: #005c8f;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0,92,143,0.1);
         }
 
-        .sync-status.online {
-            border-color: var(--success);
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
         }
 
-        .sync-status.offline {
-            border-color: var(--danger);
+        .btn {
+            flex: 1;
+            min-width: 200px;
+            padding: 18px 30px;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
-        @keyframes pulse-border {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
-            50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        .btn-primary {
+            background: linear-gradient(135deg, #005c8f 0%, #2d6acb 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(0,92,143,0.3);
         }
 
-        .sync-indicator {
-            width: 12px;
-            height: 12px;
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(0,92,143,0.4);
+        }
+
+        .btn-secondary {
+            background: #f3f6fb;
+            color: #4b5563;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.processing {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            background: var(--secondary);
-            position: relative;
-        }
-
-        .sync-status.online .sync-indicator {
-            background: var(--success);
-            box-shadow: 0 0 10px var(--success);
-        }
-
-        .sync-status.offline .sync-indicator {
-            background: var(--danger);
-        }
-
-        .sync-status.syncing .sync-indicator {
-            background: var(--warning);
-            animation: spin 1s linear infinite;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
 
-        .sync-text {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text);
+        .template-selector {
+            margin-bottom: 20px;
         }
 
-        .sync-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 20px;
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
             cursor: pointer;
-            font-size: 0.75rem;
-            transition: all 0.2s;
         }
 
-        .sync-btn:hover {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 20px;
-            margin-bottom: 2rem;
-        }
-
-        .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 1.5rem;
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--bg);
-        }
-
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text);
+        .sync-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             display: flex;
             align-items: center;
             gap: 10px;
-        }
-
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
+            font-size: 13px;
             font-weight: 600;
-            color: var(--secondary);
-            font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            z-index: 1000;
         }
 
-        input, select, textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid var(--border);
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 0.875rem 1.5rem;
-            border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
-            color: white;
-        }
-
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-        }
-
-        .table-container {
-            overflow-x: auto;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: var(--card);
-        }
-
-        th {
-            background: var(--bg);
-            padding: 1rem;
-            text-align: left;
-            font-weight: 600;
-            color: var(--secondary);
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-        }
-
-        td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        tr:hover {
-            background: var(--bg);
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .badge-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge-warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge-danger {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .action-btns {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .icon-btn {
-            width: 36px;
-            height: 36px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            background: var(--bg);
-            color: var(--secondary);
-        }
-
-        .icon-btn:hover {
-            background: var(--primary);
-            color: white;
-            transform: scale(1.1);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-card {
-            background: var(--card);
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            border-left: 4px solid var(--primary);
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--text);
-            margin-bottom: 0.25rem;
-        }
-
-        .stat-label {
-            color: var(--secondary);
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(4px);
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--card);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
-            overflow-y: auto;
-            animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1.5rem;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--secondary);
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .sync-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            transition: all 0.2s;
+            background: #10b981;
+            animation: pulse 2s infinite;
         }
 
-        .close-btn:hover {
-            background: var(--bg);
-            color: var(--danger);
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: var(--bg);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 0.5rem;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
-            transition: width 0.3s;
-            border-radius: 4px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: var(--secondary);
-        }
-
-        .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        .floating-action {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            color: white;
+        .hidden-frame {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
             border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
-            transition: all 0.3s;
-            z-index: 100;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .floating-action:hover {
-            transform: scale(1.1) rotate(90deg);
-            box-shadow: 0 20px 30px -5px rgba(37, 99, 235, 0.5);
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--text);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            box-shadow: var(--shadow);
-            z-index: 3000;
-            opacity: 0;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .toast.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-
-        .toast.success {
-            background: var(--success);
-        }
-
-        .toast.error {
-            background: var(--danger);
-        }
-
-        .toast.warning {
-            background: var(--warning);
-        }
-
-        @media (max-width: 768px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            header {
-                padding: 1.5rem;
-            }
-            
-            h1 {
-                font-size: 1.5rem;
-            }
-        }
-
-        .sync-log {
-            max-height: 200px;
-            overflow-y: auto;
-            background: var(--bg);
-            padding: 1rem;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.875rem;
-            margin-top: 1rem;
-        }
-
-        .log-entry {
-            padding: 0.25rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .log-entry:last-child {
-            border-bottom: none;
-        }
-
-        .log-time {
-            color: var(--secondary);
-            margin-right: 0.5rem;
-        }
-
-        .log-success { color: var(--success); }
-        .log-error { color: var(--danger); }
-        .log-info { color: var(--primary); }
-
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-
-        .checkbox-wrapper input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            cursor: pointer;
-        }
-
-        .row-selected {
-            background: #dbeafe !important;
         }
     </style>
 </head>
 <body>
-    <!-- Sync Status Indicator -->
-    <div class="sync-status offline" id="syncStatus">
-        <div class="sync-indicator"></div>
-        <span class="sync-text" id="syncText">Offline</span>
-        <button class="sync-btn" id="syncBtn" onclick="forceSync()">Sincronizar</button>
+    <!-- Indicador de Sync -->
+    <div class="sync-indicator" id="syncStatus">
+        <div class="sync-dot"></div>
+        <span>Sync Ativo</span>
     </div>
 
     <div class="container">
-        <header>
-            <h1>📋 RDO - Relatório Diário de Obra</h1>
-            <p class="subtitle">Sistema de Gestão com Sincronização em Tempo Real</p>
-        </header>
-
-        <!-- Stats Overview -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value" id="totalRDOs">0</div>
-                <div class="stat-label">Total de RDOs</div>
-            </div>
-            <div class="stat-card" style="border-left-color: var(--success)">
-                <div class="stat-value" id="syncedRDOs">0</div>
-                <div class="stat-label">Sincronizados</div>
-            </div>
-            <div class="stat-card" style="border-left-color: var(--warning)">
-                <div class="stat-value" id="pendingRDOs">0</div>
-                <div class="stat-label">Pendentes</div>
-            </div>
-            <div class="stat-card" style="border-left-color: var(--danger)">
-                <div class="stat-value" id="todayRDOs">0</div>
-                <div class="stat-label">Hoje</div>
-            </div>
+        <div class="header">
+            <h1>📝 RDO - Entrada de Dados</h1>
+            <p>Cole o relatório do operador e processe automaticamente no Comparador V70</p>
         </div>
 
-        <div class="grid">
-            <!-- Form Card -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon">📝</div>
-                        Novo RDO
-                    </div>
-                </div>
-                <form id="rdoForm">
-                    <div class="form-group">
-                        <label for="data">Data</label>
-                        <input type="date" id="data" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="obra">Obra</label>
-                        <select id="obra" required>
-                            <option value="">Selecione a obra...</option>
-                            <option value="Obra A">Obra A - Residencial</option>
-                            <option value="Obra B">Obra B - Comercial</option>
-                            <option value="Obra C">Obra C - Industrial</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="encarregado">Encarregado</label>
-                        <input type="text" id="encarregado" placeholder="Nome do encarregado" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="equipe">Equipe</label>
-                        <input type="text" id="equipe" placeholder="Número de trabalhadores" type="number" min="1" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="atividades">Atividades Realizadas</label>
-                        <textarea id="atividades" placeholder="Descreva as atividades do dia..." required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="observacoes">Observações</label>
-                        <textarea id="observacoes" placeholder="Observações gerais..."></textarea>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary" style="width: 100%">
-                        <span>💾</span> Salvar RDO
-                    </button>
-                </form>
-            </div>
-
-            <!-- List Card -->
-            <div class="card" style="grid-column: span 1;">
-                <div class="card-header">
-                    <div class="card-title">
-                        <div class="card-icon">📊</div>
-                        Relatórios Recentes
-                    </div>
-                    <button class="btn btn-sm btn-success" onclick="exportData()">
-                        <span>📥</span> Exportar
-                    </button>
-                </div>
-                
-                <div class="table-container">
-                    <table id="rdoTable">
-                        <thead>
-                            <tr>
-                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                                <th>Data</th>
-                                <th>Obra</th>
-                                <th>Encarregado</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="rdoTableBody">
-                            <tr>
-                                <td colspan="6" class="empty-state">
-                                    <div class="empty-state-icon">📭</div>
-                                    <p>Nenhum RDO encontrado</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button class="btn btn-sm btn-danger" onclick="deleteSelected()" id="deleteSelectedBtn" style="display: none;">
-                        <span>🗑️</span> Excluir Selecionados
-                    </button>
-                    <button class="btn btn-sm btn-warning" onclick="syncSelected()" id="syncSelectedBtn" style="display: none;">
-                        <span>🔄</span> Sincronizar Selecionados
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sync Log Card -->
         <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <div class="card-icon">🔄</div>
-                    Log de Sincronização
-                </div>
-                <button class="btn btn-sm" onclick="clearLog()" style="background: var(--bg); color: var(--text);">
-                    Limpar
+            <div class="template-selector">
+                <label style="display: block; margin-bottom: 8px; color: #4b5563; font-weight: 600;">Modelo Rápido:</label>
+                <select id="templateSelect" onchange="loadTemplate()">
+                    <option value="">-- Selecione um modelo --</option>
+                    <option value="turno_d">Turno D - Padrão</option>
+                    <option value="turno_c">Turno C - Padrão</option>
+                    <option value="checklist">Checklist Completo</option>
+                    <option value="livre">Texto Livre</option>
+                </select>
+            </div>
+
+            <h2>📋 Texto do Relatório</h2>
+            <textarea id="rdoText" placeholder="Cole aqui o relatório do operador...
+
+Exemplo de formato estruturado:
+🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS
+├─ Data: 2025-03-05
+├─ Turno: D
+├─ Operador: João Silva
+└─ Equipe: Maria, Pedro, Carlos
+├─ 🎯 11LK03 — Lokotrack 03
+│  ├─ Sistema: Sul 02
+│  ├─ 🔴 Críticos
+│  │  - Roletes/tambores: OK
+│  │  - Alinhamento: NÃO OK
+│  └─ 📝 Vazamento de óleo no motor
+
+Ou texto livre:
+Boa noite. Lokotrack 03 operou normal. Correia 56 parou 2 vezes com baixa velocidade. Hopper 12 com acúmulo de material."></textarea>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="processarEAbrir()" id="btnProcessar">
+                    <span>🚀</span> Processar no Comparador V70
+                </button>
+                <button class="btn btn-secondary" onclick="limpar()">
+                    <span>🗑️</span> Limpar
                 </button>
             </div>
-            <div class="sync-log" id="syncLog">
-                <div class="log-entry">
-                    <span class="log-time">[00:00:00]</span>
-                    <span class="log-info">Sistema iniciado. Aguardando conexão...</span>
-                </div>
-            </div>
+
+            <div id="status" class="status"></div>
         </div>
     </div>
 
-    <!-- Floating Action Button -->
-    <button class="floating-action" onclick="openModal()" title="Novo RDO">
-        <span>+</span>
-    </button>
-
-    <!-- Modal para Edição -->
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Editar RDO</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <form id="editForm">
-                    <input type="hidden" id="editId">
-                    <div class="form-group">
-                        <label for="editData">Data</label>
-                        <input type="date" id="editData" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editObra">Obra</label>
-                        <select id="editObra" required>
-                            <option value="Obra A">Obra A - Residencial</option>
-                            <option value="Obra B">Obra B - Comercial</option>
-                            <option value="Obra C">Obra C - Industrial</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="editEncarregado">Encarregado</label>
-                        <input type="text" id="editEncarregado" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editEquipe">Equipe</label>
-                        <input type="number" id="editEquipe" min="1" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editAtividades">Atividades</label>
-                        <textarea id="editAtividades" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="editObservacoes">Observações</label>
-                        <textarea id="editObservacoes"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button class="btn" onclick="closeModal()" style="background: var(--bg); color: var(--text);">Cancelar</button>
-                <button class="btn btn-primary" onclick="saveEdit()">Salvar Alterações</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <div class="toast" id="toast">
-        <span id="toastIcon">✓</span>
-        <span id="toastMessage">Mensagem</span>
-    </div>
+    <!-- Frame oculto para carregar o comparador em background -->
+    <iframe id="comparadorFrame" class="hidden-frame"></iframe>
 
     <script>
         // ==================== SYNC SYSTEM ====================
-        class SyncManager {
-            constructor() {
-                this.isOnline = navigator.onLine;
-                this.isSyncing = false;
-                this.syncQueue = [];
-                this.lastSync = null;
-                this.init();
-            }
-
+        const SyncManager = {
+            db: null,
+            collection: 'rdo_relatorios',
+            
             init() {
-                // Monitorar status de conexão
-                window.addEventListener('online', () => this.handleOnline());
-                window.addEventListener('offline', () => this.handleOffline());
-                
-                // Iniciar verificação periódica
-                setInterval(() => this.checkConnection(), 30000);
-                
-                // Tentar sincronizar ao iniciar
-                if (this.isOnline) {
-                    this.sync();
-                }
-            }
-
-            handleOnline() {
-                this.isOnline = true;
-                updateSyncStatus('online');
-                addLog('Conexão restaurada. Iniciando sincronização...', 'success');
-                this.sync();
-            }
-
-            handleOffline() {
-                this.isOnline = false;
-                updateSyncStatus('offline');
-                addLog('Conexão perdida. Modo offline ativado.', 'warning');
-            }
-
-            async checkConnection() {
-                try {
-                    const response = await fetch('/api/health', { 
-                        method: 'HEAD',
-                        cache: 'no-store'
-                    });
-                    if (!this.isOnline && response.ok) {
-                        this.handleOnline();
-                    }
-                } catch (error) {
-                    if (this.isOnline) {
-                        this.handleOffline();
-                    }
-                }
-            }
-
-            async sync() {
-                if (this.isSyncing || !this.isOnline) return;
-                
-                this.isSyncing = true;
-                updateSyncStatus('syncing');
-                addLog('Iniciando sincronização...', 'info');
-
-                try {
-                    // Buscar dados locais pendentes
-                    const pendingData = this.getPendingData();
-                    
-                    if (pendingData.length === 0) {
-                        addLog('Nenhum dado pendente para sincronizar.', 'info');
-                    } else {
-                        // Simular envio para servidor
-                        await this.sendToServer(pendingData);
-                        
-                        // Marcar como sincronizado
-                        this.markAsSynced(pendingData);
-                        addLog(`${pendingData.length} itens sincronizados com sucesso!`, 'success');
-                    }
-
-                    // Buscar atualizações do servidor
-                    await this.fetchFromServer();
-                    
-                    this.lastSync = new Date();
-                    updateStats();
-                } catch (error) {
-                    addLog(`Erro na sincronização: ${error.message}`, 'error');
-                } finally {
-                    this.isSyncing = false;
-                    updateSyncStatus(this.isOnline ? 'online' : 'offline');
-                }
-            }
-
-            getPendingData() {
-                const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-                return rdos.filter(rdo => !rdo.synced);
-            }
-
-            async sendToServer(data) {
-                // Simulação de envio - substituir por chamada real à API
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        console.log('Enviando para servidor:', data);
-                        resolve({ success: true });
-                    }, 1000);
-                });
-            }
-
-            async fetchFromServer() {
-                // Simulação de busca - substituir por chamada real à API
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        console.log('Buscando atualizações do servidor...');
-                        resolve([]);
-                    }, 800);
-                });
-            }
-
-            markAsSynced(data) {
-                const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-                data.forEach(item => {
-                    const index = rdos.findIndex(r => r.id === item.id);
-                    if (index !== -1) {
-                        rdos[index].synced = true;
-                        rdos[index].syncedAt = new Date().toISOString();
-                    }
-                });
-                localStorage.setItem('rdos', JSON.stringify(rdos));
-                renderTable();
-            }
-
-            addToQueue(rdo) {
-                this.syncQueue.push(rdo);
-                if (this.isOnline && !this.isSyncing) {
-                    this.sync();
-                }
-            }
-        }
-
-        // ==================== APP STATE ====================
-        const syncManager = new SyncManager();
-        let selectedIds = new Set();
-
-        // ==================== UI FUNCTIONS ====================
-        function updateSyncStatus(status) {
-            const statusEl = document.getElementById('syncStatus');
-            const textEl = document.getElementById('syncText');
-            
-            statusEl.className = `sync-status ${status}`;
-            
-            switch(status) {
-                case 'online':
-                    textEl.textContent = 'Online';
-                    break;
-                case 'offline':
-                    textEl.textContent = 'Offline';
-                    break;
-                case 'syncing':
-                    textEl.textContent = 'Sincronizando...';
-                    break;
-            }
-        }
-
-        function addLog(message, type = 'info') {
-            const log = document.getElementById('syncLog');
-            const time = new Date().toLocaleTimeString('pt-BR');
-            const entry = document.createElement('div');
-            entry.className = 'log-entry';
-            entry.innerHTML = `
-                <span class="log-time">[${time}]</span>
-                <span class="log-${type}">${message}</span>
-            `;
-            log.insertBefore(entry, log.firstChild);
-            
-            // Limitar a 50 entradas
-            while (log.children.length > 50) {
-                log.removeChild(log.lastChild);
-            }
-        }
-
-        function clearLog() {
-            document.getElementById('syncLog').innerHTML = '';
-            addLog('Log limpo.', 'info');
-        }
-
-        function forceSync() {
-            if (!navigator.onLine) {
-                showToast('Sem conexão com internet!', 'error');
-                return;
-            }
-            syncManager.sync();
-        }
-
-        // ==================== RDO MANAGEMENT ====================
-        document.getElementById('rdoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const rdo = {
-                id: Date.now().toString(),
-                data: document.getElementById('data').value,
-                obra: document.getElementById('obra').value,
-                encarregado: document.getElementById('encarregado').value,
-                equipe: document.getElementById('equipe').value,
-                atividades: document.getElementById('atividades').value,
-                observacoes: document.getElementById('observacoes').value,
-                createdAt: new Date().toISOString(),
-                synced: false
-            };
-
-            saveRDO(rdo);
-            this.reset();
-            document.getElementById('data').valueAsDate = new Date();
-            
-            showToast('RDO salvo com sucesso!', 'success');
-            
-            // Adicionar à fila de sincronização
-            syncManager.addToQueue(rdo);
-        });
-
-        function saveRDO(rdo) {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            rdos.unshift(rdo);
-            localStorage.setItem('rdos', JSON.stringify(rdos));
-            renderTable();
-            updateStats();
-        }
-
-        function renderTable() {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const tbody = document.getElementById('rdoTableBody');
-            
-            if (rdos.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            <div class="empty-state-icon">📭</div>
-                            <p>Nenhum RDO encontrado</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = rdos.map(rdo => `
-                <tr class="${selectedIds.has(rdo.id) ? 'row-selected' : ''}" data-id="${rdo.id}">
-                    <td>
-                        <input type="checkbox" ${selectedIds.has(rdo.id) ? 'checked' : ''} 
-                               onchange="toggleSelect('${rdo.id}')">
-                    </td>
-                    <td>${formatDate(rdo.data)}</td>
-                    <td>${rdo.obra}</td>
-                    <td>${rdo.encarregado}</td>
-                    <td>
-                        <span class="badge ${rdo.synced ? 'badge-success' : 'badge-warning'}">
-                            ${rdo.synced ? '✓ Sincronizado' : '⏳ Pendente'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="action-btns">
-                            <button class="icon-btn" onclick="editRDO('${rdo.id}')" title="Editar">✏️</button>
-                            <button class="icon-btn" onclick="deleteRDO('${rdo.id}')" title="Excluir" style="color: var(--danger)">🗑️</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('pt-BR');
-        }
-
-        function updateStats() {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const today = new Date().toISOString().split('T')[0];
-            
-            document.getElementById('totalRDOs').textContent = rdos.length;
-            document.getElementById('syncedRDOs').textContent = rdos.filter(r => r.synced).length;
-            document.getElementById('pendingRDOs').textContent = rdos.filter(r => !r.synced).length;
-            document.getElementById('todayRDOs').textContent = rdos.filter(r => r.data === today).length;
-        }
-
-        // ==================== SELECTION ====================
-        function toggleSelect(id) {
-            if (selectedIds.has(id)) {
-                selectedIds.delete(id);
-            } else {
-                selectedIds.add(id);
-            }
-            updateSelectionUI();
-        }
-
-        function toggleSelectAll() {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const checkbox = document.getElementById('selectAll');
-            
-            if (checkbox.checked) {
-                rdos.forEach(rdo => selectedIds.add(rdo.id));
-            } else {
-                selectedIds.clear();
-            }
-            renderTable();
-            updateSelectionUI();
-        }
-
-        function updateSelectionUI() {
-            const hasSelection = selectedIds.size > 0;
-            document.getElementById('deleteSelectedBtn').style.display = hasSelection ? 'flex' : 'none';
-            document.getElementById('syncSelectedBtn').style.display = hasSelection ? 'flex' : 'none';
-            
-            // Atualizar visual das linhas
-            document.querySelectorAll('#rdoTableBody tr').forEach(row => {
-                const id = row.getAttribute('data-id');
-                if (selectedIds.has(id)) {
-                    row.classList.add('row-selected');
+                // Inicializar Firebase se disponível
+                if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                    this.db = firebase.firestore();
+                    console.log('✅ Sync: Firebase conectado');
                 } else {
-                    row.classList.remove('row-selected');
+                    console.log('⏳ Sync: Aguardando Firebase...');
+                    setTimeout(() => this.init(), 1000);
                 }
-            });
+            },
+
+            async save(text) {
+                if (!this.db) {
+                    // Fallback: salvar no localStorage
+                    localStorage.setItem('rdo_pendente', text);
+                    localStorage.setItem('rdo_timestamp', Date.now());
+                    return { local: true };
+                }
+
+                try {
+                    const doc = await this.db.collection(this.collection).add({
+                        text: text,
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'pendente',
+                        source: 'rdo_operadores'
+                    });
+                    return { id: doc.id, local: false };
+                } catch (e) {
+                    console.error('Erro ao salvar:', e);
+                    localStorage.setItem('rdo_pendente', text);
+                    return { local: true, error: e };
+                }
+            }
+        };
+
+        // Inicializar sync
+        SyncManager.init();
+
+        // ==================== TEMPLATES ====================
+        const templates = {
+            turno_d: `🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS
+├─ Data: ${new Date().toISOString().split('T')[0]}
+├─ Turno: D
+├─ Operador: 
+└─ Equipe: 
+
+├─ 🎯 11LK03 — Lokotrack 03
+│  ├─ Sistema: Sul 02
+│  ├─ 🔴 Críticos
+│  │  - Roletes/tambores: OK
+│  │  - Alinhamento: OK
+│  │  - Emendas/Cobertura: OK
+│  │  - Raspadores: OK
+│  │  - Vedação de chutes: OK
+│  ├─ 🟠 Preventivos
+│  │  - Lubrificação: OK
+│  │  - Motor (A/Temp): OK
+│  │  - Raspadores secundários: OK
+│  │  - Retorno limpo: OK
+│  │  - Roletes de impacto: OK
+│  ├─ 🟢 Melhoria
+│  │  - Treinamento: OK
+│  │  - Registro de falhas: OK
+│  │  - Sensores: OK
+│  │  - Ambiental: OK
+│  └─ 📝 
+
+├─ 🎯 11CR14 — Carregador 14
+│  ├─ Sistema: Sul 02
+│  ├─ 🔴 Críticos
+│  │  - Roletes/tambores: OK
+│  │  - Alinhamento: OK
+│  │  - Emendas/Cobertura: OK
+│  │  - Raspadores: OK
+│  │  - Vedação de chutes: OK
+│  ├─ 🟠 Preventivos
+│  │  - Lubrificação: OK
+│  │  - Motor (A/Temp): OK
+│  │  - Raspadores secundários: OK
+│  │  - Retorno limpo: OK
+│  │  - Roletes de impacto: OK
+│  ├─ 🟢 Melhoria
+│  │  - Treinamento: OK
+│  │  - Registro de falhas: OK
+│  │  - Sensores: OK
+│  │  - Ambiental: OK
+│  └─ 📝 
+
+├─ 🎯 11CV68 — Correia 68
+│  ├─ Sistema: Sul 02
+│  ├─ 🔴 Críticos
+│  │  - Roletes/tambores: OK
+│  │  - Alinhamento: OK
+│  │  - Emendas/Cobertura: OK
+│  │  - Raspadores: OK
+│  │  - Vedação de chutes: OK
+│  ├─ 🟠 Preventivos
+│  │  - Lubrificação: OK
+│  │  - Motor (A/Temp): OK
+│  │  - Raspadores secundários: OK
+│  │  - Retorno limpo: OK
+│  │  - Roletes de impacto: OK
+│  ├─ 🟢 Melhoria
+│  │  - Treinamento: OK
+│  │  - Registro de falhas: OK
+│  │  - Sensores: OK
+│  │  - Ambiental: OK
+│  └─ 📝 
+
+📎 Fotos: anexadas separadamente`,
+
+            livre: `Boa noite a todos.
+
+Turno D - Operação normal.
+
+Lokotrack 03 operou sem anormalidades. Realizada inspeção preventiva.
+
+Correia 56 apresentou parada por baixa velocidade às 14:30, retomou operação normal após 10 minutos.
+
+Hopper 12 com acúmulo de material na estrutura, necessária limpeza no próximo turno.
+
+Sem ocorrências críticas.`
+
+        };
+
+        function loadTemplate() {
+            const select = document.getElementById('templateSelect');
+            const text = templates[select.value];
+            if (text) {
+                document.getElementById('rdoText').value = text;
+            }
         }
 
-        function deleteSelected() {
-            if (!confirm(`Excluir ${selectedIds.size} RDO(s) selecionado(s)?`)) return;
-            
-            let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            rdos = rdos.filter(rdo => !selectedIds.has(rdo.id));
-            localStorage.setItem('rdos', JSON.stringify(rdos));
-            
-            selectedIds.clear();
-            renderTable();
-            updateStats();
-            updateSelectionUI();
-            showToast('Itens excluídos com sucesso!', 'success');
+        function limpar() {
+            document.getElementById('rdoText').value = '';
+            document.getElementById('status').className = 'status';
         }
 
-        function syncSelected() {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const toSync = rdos.filter(rdo => selectedIds.has(rdo.id) && !rdo.synced);
-            
-            if (toSync.length === 0) {
-                showToast('Os itens selecionados já estão sincronizados!', 'warning');
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status show ' + type;
+        }
+
+        // ==================== PROCESSAMENTO PRINCIPAL ====================
+        async function processarEAbrir() {
+            const text = document.getElementById('rdoText').value.trim();
+            const btn = document.getElementById('btnProcessar');
+
+            if (!text) {
+                showStatus('❌ Cole o relatório primeiro!', 'error');
                 return;
             }
-            
-            syncManager.sendToServer(toSync).then(() => {
-                syncManager.markAsSynced(toSync);
-                selectedIds.clear();
-                updateSelectionUI();
-                showToast(`${toSync.length} item(s) sincronizado(s)!`, 'success');
-            });
-        }
 
-        // ==================== CRUD OPERATIONS ====================
-        function editRDO(id) {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const rdo = rdos.find(r => r.id === id);
-            
-            if (!rdo) return;
-            
-            document.getElementById('editId').value = rdo.id;
-            document.getElementById('editData').value = rdo.data;
-            document.getElementById('editObra').value = rdo.obra;
-            document.getElementById('editEncarregado').value = rdo.encarregado;
-            document.getElementById('editEquipe').value = rdo.equipe;
-            document.getElementById('editAtividades').value = rdo.atividades;
-            document.getElementById('editObservacoes').value = rdo.observacoes || '';
-            
-            document.getElementById('editModal').classList.add('active');
-        }
+            // Desabilitar botão e mostrar loading
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Processando...';
+            showStatus('⏳ Salvando e sincronizando dados...', 'processing');
 
-        function saveEdit() {
-            const id = document.getElementById('editId').value;
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            const index = rdos.findIndex(r => r.id === id);
-            
-            if (index === -1) return;
-            
-            rdos[index] = {
-                ...rdos[index],
-                data: document.getElementById('editData').value,
-                obra: document.getElementById('editObra').value,
-                encarregado: document.getElementById('editEncarregado').value,
-                equipe: document.getElementById('editEquipe').value,
-                atividades: document.getElementById('editAtividades').value,
-                observacoes: document.getElementById('editObservacoes').value,
-                synced: false, // Marcar como não sincronizado após edição
-                updatedAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem('rdos', JSON.stringify(rdos));
-            renderTable();
-            updateStats();
-            closeModal();
-            showToast('RDO atualizado com sucesso!', 'success');
-            
-            // Adicionar à fila de sincronização
-            syncManager.addToQueue(rdos[index]);
-        }
+            try {
+                // 1. Salvar no Firebase/LocalStorage
+                const result = await SyncManager.save(text);
+                console.log('💾 Dados salvos:', result);
 
-        function deleteRDO(id) {
-            if (!confirm('Tem certeza que deseja excluir este RDO?')) return;
-            
-            let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            rdos = rdos.filter(r => r.id !== id);
-            localStorage.setItem('rdos', JSON.stringify(rdos));
-            
-            renderTable();
-            updateStats();
-            showToast('RDO excluído com sucesso!', 'success');
-        }
+                // 2. Salvar no localStorage para o comparador ler
+                localStorage.setItem('rdo_texto_operadores', text);
+                localStorage.setItem('rdo_data_envio', new Date().toISOString());
+                localStorage.setItem('rdo_processar_agora', 'true');
 
-        // ==================== MODAL ====================
-        function openModal() {
-            document.getElementById('rdoForm').scrollIntoView({ behavior: 'smooth' });
-            document.getElementById('data').focus();
-        }
+                // 3. Mostrar sucesso
+                showStatus('✅ Dados sincronizados! Abrindo Comparador V70...', 'success');
 
-        function closeModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
+                // 4. Abrir o comparador em nova aba (vai processar automaticamente)
+                setTimeout(() => {
+                    const comparadorUrl = 'Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS (2).html';
+                    
+                    // Tentar abrir em nova aba
+                    const newWindow = window.open(comparadorUrl, '_blank');
+                    
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                        // Popup bloqueado, redirecionar na mesma aba
+                        showStatus('🔄 Redirecionando...', 'processing');
+                        setTimeout(() => {
+                            window.location.href = comparadorUrl;
+                        }, 1000);
+                    } else {
+                        // Nova aba aberta com sucesso
+                        showStatus('✅ Comparador V70 aberto em nova aba! Processando automaticamente...', 'success');
+                        
+                        // Limpar para próximo uso
+                        setTimeout(() => {
+                            document.getElementById('rdoText').value = '';
+                            btn.disabled = false;
+                            btn.innerHTML = '<span>🚀</span> Processar no Comparador V70';
+                        }, 3000);
+                    }
+                }, 1500);
 
-        // ==================== UTILITIES ====================
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const icon = document.getElementById('toastIcon');
-            const msg = document.getElementById('toastMessage');
-            
-            toast.className = `toast ${type} show`;
-            msg.textContent = message;
-            
-            const icons = {
-                success: '✓',
-                error: '✕',
-                warning: '⚠'
-            };
-            icon.textContent = icons[type] || 'ℹ';
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
-        }
-
-        function exportData() {
-            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
-            if (rdos.length === 0) {
-                showToast('Nenhum dado para exportar!', 'warning');
-                return;
+            } catch (error) {
+                console.error('Erro:', error);
+                showStatus('❌ Erro ao processar: ' + error.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<span>🚀</span> Processar no Comparador V70';
             }
-            
-            const dataStr = JSON.stringify(rdos, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `rdos_backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            
-            showToast('Dados exportados com sucesso!', 'success');
         }
 
-        // ==================== INIT ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('data').valueAsDate = new Date();
-            renderTable();
-            updateStats();
-            updateSyncStatus(navigator.onLine ? 'online' : 'offline');
-            
-            // Fechar modal ao clicar fora
-            document.getElementById('editModal').addEventListener('click', (e) => {
-                if (e.target.id === 'editModal') closeModal();
-            });
+        // ==================== AUTO-LOAD ====================
+        // Verificar se tem dados pendentes do operador (quando volta da página do comparador)
+        window.addEventListener('load', () => {
+            const pendente = localStorage.getItem('rdo_pendente');
+            if (pendente && document.getElementById('rdoText').value === '') {
+                if (confirm('📝 Existe um relatório pendente. Deseja carregá-lo?')) {
+                    document.getElementById('rdoText').value = pendente;
+                }
+            }
         });
 
         // Atalhos de teclado
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                forceSync();
+            if (e.ctrlKey && e.key === 'Enter') {
+                processarEAbrir();
             }
         });
     </script>
+
+    <!-- Firebase (caso esteja disponível no projeto) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
 </body>
 </html>
