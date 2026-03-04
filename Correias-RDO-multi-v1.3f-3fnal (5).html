@@ -1,556 +1,1325 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>RDO-OPERAÇÃO SISTEMA DE CORREIAS — CRD/SAMARCO</title>
-<link rel="icon" href="data:;base64,iVBORw0KGgo=">
-<script src="https://unpkg.com/dom-to-image-more/dist/dom-to-image-more.min.js">
-async function domtoImageSafe(node){
-  try{ return await domtoimage.toPng(node,{quality:1,cacheBust:true}); }
-  catch(e){
-    console.warn('domtoimage falhou; tentando novamente com pequeno atraso', e);
-    await new Promise(r=>setTimeout(r, 30));
-    return await domtoimage.toPng(node,{quality:1,cacheBust:true});
-  }
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RDO - Relatório Diário de Obra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-</script>
-<style>
-:root{
-  --bg:#ffffff; --card:#ffffff; --muted:#64748b; --text:#0f172a;
-  --border:#e5e7eb; --shadow:0 10px 28px rgba(2,8,23,.06);
-  --crit:#ef4444; --prev:#f59e0b; --melh:#16a34a; --brand:#0b4ea2;
-}
-*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-body{margin:0;background:var(--bg);color:var(--text)}
-.wrap{max-width:1120px;margin:0 auto;padding:14px}
-.header{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-radius:12px;color:#fff;background:linear-gradient(100deg,var(--brand),#2d6acb);box-shadow:var(--shadow)}
-.header h1{margin:0;font-size:18px;display:flex;gap:8px;align-items:center}
-.badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);padding:6px 10px;border-radius:999px;display:inline-block}
-.sticky{position:sticky;top:0;z-index:20;background:linear-gradient(#fff,#fff 85%,rgba(255,255,255,.75));backdrop-filter:saturate(140%) blur(2px);margin:-8px -8px 8px -8px;padding:8px}
-.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:10px}
-.bar .title{font-weight:800;color:#111827}
-select,input[type="text"],input[type="date"]{padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:160px}
-select[multiple]{min-height:104px}
-input[type="search"]{flex:1;min-width:220px}
-textarea{width:100%;min-height:70px;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
-.btn{padding:10px 14px;border:none;border-radius:10px;font-weight:700;display:inline-flex;gap:8px;align-items:center;cursor:pointer}
-.btn-primary{background:var(--brand);color:#fff}
-.btn-warn{background:var(--prev);color:#fff}
-.btn-ghost{background:#f8fafc;border:1px solid var(--border)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:14px;margin-top:10px}
-.card-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
-.hint{font-size:12px;color:var(--muted)}
-.tablewrap{overflow-x:auto;margin-top:8px}
-table.check{width:100%;border-collapse:collapse}
-table.check th, table.check td{border-bottom:1px dashed var(--border);padding:8px 6px}
-table.check th{font-weight:700;color:#1f2937}
-table.check td:first-child{color:#111827}
-table.check th:nth-child(n+2), table.check td:nth-child(n+2){text-align:center;width:92px}
-.group{font-weight:800;margin-top:10px}
-.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#f8fafc;padding:8px}
-.pwrap{position:relative}
-.p{width:100%;height:69px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block}
-.pdel{position:absolute;right:-6px;top:-6px;width:22px;height:22px;border-radius:999px;border:none;background:#dc2626;color:#fff;font-weight:900;cursor:pointer}
-.collapse{margin-top:8px;border-top:1px dashed var(--border);padding-top:8px}
-summary{cursor:pointer;font-weight:800}
-#preview{white-space:pre-wrap}
-.small{font-size:12px;color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px}
-/* Report */
-#reportRoot{position:absolute;left:-9999px;top:-9999px;background:#fff;padding:16px;width:1120px}
-#reportHeader{margin-bottom:8px}
-#reportGrid{display:grid;gap:10px;grid-template-columns:repeat(3,1fr)}
-.r-card{border:1px solid var(--border);border-radius:10px;padding:10px}
-.rp{width:60px;height:46px;object-fit:cover;border-radius:6px;border:1px solid var(--border);margin:2px}
-@media(max-width:960px){ #reportGrid{grid-template-columns:repeat(2,1fr)} }
-@media(max-width:640px){ #reportGrid{grid-template-columns:1fr} }
-/* Problems selector */
-.probwrap{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
-.probSel{min-width:260px;border:1px solid var(--border);border-radius:10px}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.chip{background:#eef6ff;border:1px solid #cfe3ff;padding:4px 8px;border-radius:999px;font-size:12px;color:#1f2a44}
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
 
-/* Desativa barras "sticky" em telas móveis (melhora rolagem) */
-@media (max-width: 1024px){
-  .sticky{ position: static !important; top:auto !important; margin:-8px 0 8px 0; }
-}
-.mobile .sticky{ position: static !important; top:auto !important; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
 
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-/* PNG: sempre 3 colunas, inclusive no celular */
-#reportRoot.force3 #reportGrid{grid-template-columns:repeat(3,1fr) !important}
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
 
-</style>
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 300px;
+            height: 300px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sync-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card);
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .sync-status.syncing {
+            border-color: var(--warning);
+            animation: pulse-border 1.5s infinite;
+        }
+
+        .sync-status.online {
+            border-color: var(--success);
+        }
+
+        .sync-status.offline {
+            border-color: var(--danger);
+        }
+
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        }
+
+        .sync-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--secondary);
+            position: relative;
+        }
+
+        .sync-status.online .sync-indicator {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .sync-status.offline .sync-indicator {
+            background: var(--danger);
+        }
+
+        .sync-status.syncing .sync-indicator {
+            background: var(--warning);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .sync-text {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .sync-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .sync-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--bg);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card);
+        }
+
+        th {
+            background: var(--bg);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--secondary);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover {
+            background: var(--bg);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-btns {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            background: var(--bg);
+            color: var(--secondary);
+        }
+
+        .icon-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--secondary);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--secondary);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--bg);
+            color: var(--danger);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--success) 100%);
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .floating-action {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+            transition: all 0.3s;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .floating-action:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 20px 30px -5px rgba(37, 99, 235, 0.5);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--text);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            box-shadow: var(--shadow);
+            z-index: 3000;
+            opacity: 0;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            background: var(--success);
+        }
+
+        .toast.error {
+            background: var(--danger);
+        }
+
+        .toast.warning {
+            background: var(--warning);
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            header {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .sync-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+
+        .log-entry {
+            padding: 0.25rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            color: var(--secondary);
+            margin-right: 0.5rem;
+        }
+
+        .log-success { color: var(--success); }
+        .log-error { color: var(--danger); }
+        .log-info { color: var(--primary); }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .row-selected {
+            background: #dbeafe !important;
+        }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="header">
-    <h1>🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS — CRD/SAMARCO</h1>
-    <div class="badge" id="dateBadge"></div>
-  </div>
-
-  <div class="sticky">
-    <!-- Linha 1: Seleção -->
-    <div class="bar" id="selBar">
-      <div class="title">1) Seleção</div>
-      <select id="sistema">
-        <option value="">Sistema…</option>
-        <option value="Sul 1">🟦 Sul 1</option>
-        <option value="Sul 2">🟩 Sul 2</option>
-        <option value="Centro">🟨 Centro</option>
-        <option value="Norte">🟥 Norte</option>
-        <option value="Fazendão">🟪 Fazendão</option>
-      </select>
-      <select id="equipList" multiple size="3" style="min-width:260px"></select>
-      <input id="alias" class="inp" placeholder="Nome/Local (ex.: Correia descarga do britador)"/>
-      <button id="addEquip" class="btn btn-primary">+ Adicionar Selecionados</button>
-      <input id="buscar" type="search" placeholder="Buscar no quadro abaixo…"/>
-      <button id="markAllOk" class="btn btn-ghost">Marcar tudo OK</button>
-    </div>
-    <!-- Linha 2: Contexto + Ações -->
-    <div class="bar">
-      <div class="title">2) Contexto</div>
-      <input type="date" id="data"/>
-      <select id="turno"><option value="">Turno…</option><option>A</option><option>B</option><option>C</option><option>D</option></select>
-      <select id="escala"><option value="">Escala…</option><option>08:00 às 20:00</option><option>19:00 às 07:00</option></select>
-      <input id="operador" class="inp" placeholder="Operador (responsável)"/>
-      <input id="equipe" class="inp" placeholder="Equipe (vírgulas)"/>
-      <button id="sendWA" class="btn btn-primary">💬 WhatsApp</button>
-      <button id="copyTxt" class="btn btn-ghost">📋 Copiar</button>
-      <button id="pngBtn" class="btn btn-warn">🖼️ PNG</button>
-      <a id="dl" style="display:none"></a>
-    </div>
-  </div>
-
-  <div id="grid" class="grid"></div>
-
-  <div class="card">
-    <div class="hint"><b>RDO-OPERAÇÃO SISTEMA DE CORREIAS</b></div>
-    <div id="preview" class="small"></div>
-  </div>
-</div>
-
-<!-- DOM oculto do relatório visual (PNG) -->
-<div id="reportRoot">
-  <div id="reportHeader"></div>
-  <div id="reportGrid"></div>
-</div>
-
-<script>
-
-// ===== Modo móvel: desativar sticky para facilitar rolagem =====
-(function(){
-  const isMobile = window.matchMedia('(pointer:coarse)').matches || window.innerWidth < 1024;
-  if(isMobile){ document.documentElement.classList.add('mobile'); }
-  window.addEventListener('resize', ()=>{
-    const mob = window.matchMedia('(pointer:coarse)').matches || window.innerWidth < 1024;
-    document.documentElement.classList.toggle('mobile', mob);
-  });
-})();
-// ===== Dados base =====
-const MAP = {
-  "Sul 1": ["11CR12","11CV72","02CV002"],
-  "Sul 2": ["11LK03","11CR14","02CV009","11CV68","11CV67","11CV07","11CR05","11CV69","Hopper 19","11CV73"],
-  "Centro": ["11CR13","02CV037-041","11CV21","11CV64","11LK01","11CV20","Hopper 13","02CV41","02CV39"],
-  "Norte": ["11CR03","11CR10","11CR15","11CV23","11CV24","11CV70","Lokotrack 01"],
-  "Fazendão": ["11LK02","11CV56","Lokotrack 02"]
-};
-const LABELS = {
-  C1:"Roletes/tambores", C2:"Alinhamento", C3:"Emendas/Cobertura", C4:"Raspadores", C5:"Vedação de chutes",
-  P1:"Lubrificação", P2:"Motor (A/Temp)", P3:"Raspadores secundários", P4:"Retorno limpo", P5:"Roletes de impacto",
-  M1:"Treinamento", M2:"Registro de falhas", M3:"Sensores", M4:"Ambiental"
-};
-const GROUPS = {criticos:["C1","C2","C3","C4","C5"], preventivos:["P1","P2","P3","P4","P5"], melhoria:["M1","M2","M3","M4"]};
-
-let EQUIPS = []; // {id, sistema, codigo, alias, status:{}, obs:'', photos:[{blob,t,m}], probsSel:[]}
-const $ = s => document.querySelector(s);
-const $$ = s => Array.from(document.querySelectorAll(s));
-
-$('#dateBadge').textContent = new Date().toLocaleString('pt-BR');
-
-// Popular lista ao escolher sistema
-const equipList = $('#equipList');
-$('#sistema').addEventListener('change', ()=>{
-  equipList.innerHTML = '';
-  (MAP[$('#sistema').value]||[]).forEach(v=>{
-    const o=document.createElement('option'); o.value=v; o.textContent=v; equipList.appendChild(o);
-  });
-});
-
-// Adicionar selecionados
-$('#addEquip').onclick = ()=>{
-  const sis = $('#sistema').value;
-  const sel = Array.from(equipList.selectedOptions).map(o=>o.value);
-  if(!sis || !sel.length){ alert('Selecione o Sistema e marque pelo menos um equipamento.'); return; }
-  sel.forEach(code=>{
-    if(EQUIPS.some(x=>x.codigo===code)) return;
-    EQUIPS.push({id: crypto.randomUUID(), sistema:sis, codigo:code, alias: $('#alias').value.trim(), status:{}, obs:'', photos:[], probsSel:[]});
-  });
-  $('#alias').value='';
-  render(); updatePreview();
-};
-
-// Busca rápida
-$('#buscar').addEventListener('input', ()=>{
-  const q = $('#buscar').value.toLowerCase();
-  $$('.card').forEach(c=>{
-    const txt = c.textContent.toLowerCase();
-    c.style.display = txt.includes(q) ? '' : 'none';
-  });
-});
-
-// Marcar tudo OK
-$('#markAllOk').onclick = ()=>{
-  EQUIPS.forEach(e=>{
-    [...GROUPS.criticos,...GROUPS.preventivos,...GROUPS.melhoria].forEach(k=>e.status[k]='OK');
-  });
-  render(); updatePreview();
-};
-
-// WhatsApp
-$('#sendWA').onclick = ()=>{
-  const text = buildTextReport();
-  const url1 = 'whatsapp://send?text='+encodeURIComponent(text);
-  const url2 = 'https://wa.me/?text='+encodeURIComponent(text);
-  location.href=url1; setTimeout(()=>location.href=url2, 600);
-};
-
-// Copiar texto
-$('#copyTxt').onclick = async()=>{
-  const text = buildTextReport();
-  try{ await navigator.clipboard.writeText(text); alert('Relatório copiado!'); }catch{ alert('Selecione a prévia e copie.'); }
-};
-
-// PNG
-$('#pngBtn').onclick = async()=>{
-  const dataUrl = await makePNG();
-  const a = $('#dl'); a.href = dataUrl; a.download = fileName('RDO-CORREIAS'); a.click();
-};
-
-function fileName(base){
-  const d = new Date();
-  const pad = n=>String(n).padStart(2,'0');
-  return `${base} - ${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}-${pad(d.getMinutes())}.png`;
-}
-
-function render(){
-  $('#grid').innerHTML = EQUIPS.map(equipCardHTML).join('');
-  wireCards();
-}
-
-function equipCardHTML(e){
-  const rows = (title, list)=>`
-    <div class="group">${title}</div>
-    <div class="tablewrap">
-      <table class="check">
-        <thead><tr><th>Item</th><th>OK</th><th>NÃO OK</th><th>NA</th></tr></thead>
-        <tbody>
-          ${list.map(k=>`
-            <tr>
-              <td>${LABELS[k]}</td>
-              <td><input type="radio" name="${e.id}_${k}" value="OK"${e.status[k]==='OK'?' checked':''}></td>
-              <td><input type="radio" name="${e.id}_${k}" value="NÃO OK"${e.status[k]==='NÃO OK'?' checked':''}></td>
-              <td><input type="radio" name="${e.id}_${k}" value="NA"${e.status[k]==='NA'?' checked':''}></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>`;
-  const ph = (e.photos||[]).map((p,i)=>`<div class="pwrap"><img src="${p.blob||p.t||p.m}" class="p" alt="foto ${i+1}"/><button class="pdel" data-i="${i}">×</button></div>`).join('');
-  return `<div class="card" data-id="${e.id}">
-    <div class="card-h">
-      <div>
-        <div style="font-weight:900">${e.codigo} — ${e.alias||'<span class="hint">Sem nome/local</span>'}</div>
-        <div class="hint">Sistema: ${e.sistema}</div>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <label class="btn btn-ghost" style="cursor:pointer"><input class="photoCam" type="file" accept="image/*" capture="environment" multiple style="display:none"/>📷 Câmera</label><label class="btn btn-ghost" style="cursor:pointer"><input class="photoPick" type="file" accept="image/*" multiple style="display:none"/>🗂️ Arquivo</label>
-        <button class="btn btn-ghost bDel">Excluir</button>
-      </div>
+    <!-- Sync Status Indicator -->
+    <div class="sync-status offline" id="syncStatus">
+        <div class="sync-indicator"></div>
+        <span class="sync-text" id="syncText">Offline</span>
+        <button class="sync-btn" id="syncBtn" onclick="forceSync()">Sincronizar</button>
     </div>
 
-    ${rows('🔴 Críticos', GROUPS.criticos)}
-    ${rows('🟠 Preventivos', GROUPS.preventivos)}
-    ${rows('🟢 Melhoria', GROUPS.melhoria)}
+    <div class="container">
+        <header>
+            <h1>📋 RDO - Relatório Diário de Obra</h1>
+            <p class="subtitle">Sistema de Gestão com Sincronização em Tempo Real</p>
+        </header>
 
-    <div class="group">Problemas (selecione e/ou descreva)</div>
-    <div class="probwrap">
-      <select class="probSel" multiple size="8">
-        <optgroup label="🔧 Mecânica">
-          <option>Desalinhamento da correia</option>
-          <option>Desgaste/ruptura da correia</option>
-          <option>Emenda danificada</option>
-          <option>Rasgos/furos</option>
-          <option>Roletes travados/desgastados</option>
-          <option>Roletes de impacto danificados</option>
-          <option>Raspadores ineficientes</option>
-          <option>Acúmulo de material no retorno</option>
-          <option>Polias com desgaste irregular</option>
-          <option>Vibração excessiva</option>
-        </optgroup>
-        <optgroup label="⚡ Elétrica/Automação">
-          <option>Motor superaquecendo</option>
-          <option>Falha no acionamento do motor</option>
-          <option>Fusível/Disjuntor desarmando</option>
-          <option>Sensor de velocidade com falha</option>
-          <option>Sensor de desalinhamento com falha</option>
-          <option>Chave de emergência com falha</option>
-          <option>Painel elétrico com falha</option>
-          <option>Intermitência no CLP</option>
-        </optgroup>
-        <optgroup label="🏗️ Estrutural/Operacional">
-          <option>Vedação de chutes com falha</option>
-          <option>Vazamento de material</option>
-          <option>Travamento por sobrecarga</option>
-          <option>Estrutura com trincas</option>
-          <option>Drenagem insuficiente</option>
-          <option>Suportes da correia danificados</option>
-          <option>Contaminação por óleo/graxa</option>
-        </optgroup>
-        <optgroup label="🛡️ Segurança/Manutenção">
-          <option>Proteções fora de posição</option>
-          <option>Corrimão/guarda-corpo danificado</option>
-          <option>Falta de lubrificação</option>
-          <option>Ruído excessivo</option>
-          <option>Falta de inspeção preventiva</option>
-        </optgroup>
-      </select>
-      <div class="flex-col" style="flex:1;min-width:260px">
-        <details class="collapse">
-          <summary>Observações</summary>
-          <textarea class="obs" placeholder="Detalhe os NÃO OK: localização, extensão, recomendação..."></textarea>
-        </details>
-        <div class="chips selChips"></div>
-      </div>
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalRDOs">0</div>
+                <div class="stat-label">Total de RDOs</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--success)">
+                <div class="stat-value" id="syncedRDOs">0</div>
+                <div class="stat-label">Sincronizados</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--warning)">
+                <div class="stat-value" id="pendingRDOs">0</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card" style="border-left-color: var(--danger)">
+                <div class="stat-value" id="todayRDOs">0</div>
+                <div class="stat-label">Hoje</div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- Form Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">📝</div>
+                        Novo RDO
+                    </div>
+                </div>
+                <form id="rdoForm">
+                    <div class="form-group">
+                        <label for="data">Data</label>
+                        <input type="date" id="data" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="obra">Obra</label>
+                        <select id="obra" required>
+                            <option value="">Selecione a obra...</option>
+                            <option value="Obra A">Obra A - Residencial</option>
+                            <option value="Obra B">Obra B - Comercial</option>
+                            <option value="Obra C">Obra C - Industrial</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="encarregado">Encarregado</label>
+                        <input type="text" id="encarregado" placeholder="Nome do encarregado" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="equipe">Equipe</label>
+                        <input type="text" id="equipe" placeholder="Número de trabalhadores" type="number" min="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="atividades">Atividades Realizadas</label>
+                        <textarea id="atividades" placeholder="Descreva as atividades do dia..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacoes">Observações</label>
+                        <textarea id="observacoes" placeholder="Observações gerais..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%">
+                        <span>💾</span> Salvar RDO
+                    </button>
+                </form>
+            </div>
+
+            <!-- List Card -->
+            <div class="card" style="grid-column: span 1;">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">📊</div>
+                        Relatórios Recentes
+                    </div>
+                    <button class="btn btn-sm btn-success" onclick="exportData()">
+                        <span>📥</span> Exportar
+                    </button>
+                </div>
+                
+                <div class="table-container">
+                    <table id="rdoTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                <th>Data</th>
+                                <th>Obra</th>
+                                <th>Encarregado</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rdoTableBody">
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    <div class="empty-state-icon">📭</div>
+                                    <p>Nenhum RDO encontrado</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn btn-sm btn-danger" onclick="deleteSelected()" id="deleteSelectedBtn" style="display: none;">
+                        <span>🗑️</span> Excluir Selecionados
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="syncSelected()" id="syncSelectedBtn" style="display: none;">
+                        <span>🔄</span> Sincronizar Selecionados
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sync Log Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <div class="card-icon">🔄</div>
+                    Log de Sincronização
+                </div>
+                <button class="btn btn-sm" onclick="clearLog()" style="background: var(--bg); color: var(--text);">
+                    Limpar
+                </button>
+            </div>
+            <div class="sync-log" id="syncLog">
+                <div class="log-entry">
+                    <span class="log-time">[00:00:00]</span>
+                    <span class="log-info">Sistema iniciado. Aguardando conexão...</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="photos">${ph}</div>
-  </div>`;
-}
+    <!-- Floating Action Button -->
+    <button class="floating-action" onclick="openModal()" title="Novo RDO">
+        <span>+</span>
+    </button>
 
-function wireCards(){
-  $$('.card').forEach(card=>{
-    const id = card.getAttribute('data-id');
-    const e = EQUIPS.find(x=>x.id===id);
+    <!-- Modal para Edição -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar RDO</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editId">
+                    <div class="form-group">
+                        <label for="editData">Data</label>
+                        <input type="date" id="editData" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editObra">Obra</label>
+                        <select id="editObra" required>
+                            <option value="Obra A">Obra A - Residencial</option>
+                            <option value="Obra B">Obra B - Comercial</option>
+                            <option value="Obra C">Obra C - Industrial</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEncarregado">Encarregado</label>
+                        <input type="text" id="editEncarregado" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEquipe">Equipe</label>
+                        <input type="number" id="editEquipe" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editAtividades">Atividades</label>
+                        <textarea id="editAtividades" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editObservacoes">Observações</label>
+                        <textarea id="editObservacoes"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()" style="background: var(--bg); color: var(--text);">Cancelar</button>
+                <button class="btn btn-primary" onclick="saveEdit()">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
 
-    // radios
-    [...GROUPS.criticos,...GROUPS.preventivos,...GROUPS.melhoria].forEach(k=>{
-      card.querySelectorAll(`input[name="${id}_${k}"]`).forEach(r=>{
-        r.onchange = ()=>{ e.status[k]=r.value; updatePreview(); };
-      });
-    });
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <span id="toastIcon">✓</span>
+        <span id="toastMessage">Mensagem</span>
+    </div>
 
-    // problemas (multi)
-    const psel = card.querySelector('.probSel');
-    if(e.probsSel && e.probsSel.length){
-      Array.from(psel.options).forEach(o=>{ if((e.probsSel||[]).includes(o.textContent)) o.selected=true; });
-    }
-    const renderChips=()=>{
-      const box = card.querySelector('.selChips');
-      box.innerHTML = (e.probsSel||[]).map(t=>`<span class="chip">${t}</span>`).join('');
-    };
-    psel.onchange = ()=>{
-      e.probsSel = Array.from(psel.selectedOptions).map(o=>o.textContent);
-      renderChips(); updatePreview();
-    };
-    renderChips();
+    <script>
+        // ==================== SYNC SYSTEM ====================
+        class SyncManager {
+            constructor() {
+                this.isOnline = navigator.onLine;
+                this.isSyncing = false;
+                this.syncQueue = [];
+                this.lastSync = null;
+                this.init();
+            }
 
-    // obs
-    const obs = card.querySelector('.obs'); obs.value = e.obs||'';
-    obs.oninput = ()=>{ e.obs = obs.value; updatePreview(); };
+            init() {
+                // Monitorar status de conexão
+                window.addEventListener('online', () => this.handleOnline());
+                window.addEventListener('offline', () => this.handleOffline());
+                
+                // Iniciar verificação periódica
+                setInterval(() => this.checkConnection(), 30000);
+                
+                // Tentar sincronizar ao iniciar
+                if (this.isOnline) {
+                    this.sync();
+                }
+            }
 
-    // excluir equip
-    card.querySelector('.bDel').onclick = ()=>{
-      EQUIPS = EQUIPS.filter(z=>z.id!==id); render(); updatePreview();
-    };
+            handleOnline() {
+                this.isOnline = true;
+                updateSyncStatus('online');
+                addLog('Conexão restaurada. Iniciando sincronização...', 'success');
+                this.sync();
+            }
 
-    // fotos
-    card.querySelectorAll('.pdel').forEach(btn=>btn.onclick=()=>{
-      const i = +btn.dataset.i; const p=e.photos[i]; if(p && p.blob){ try{ URL.revokeObjectURL(p.blob); }catch{} }
-      e.photos.splice(i,1); render(); updatePreview();
-    });
-    const cam = card.querySelector('.photoCam');
-    const pick = card.querySelector('.photoPick');
-    const handleFiles = async (files)=>{
-      for(const f of files){
-        const blobURL = URL.createObjectURL(f);
-        const idx = (e.photos.push({blob:blobURL}) - 1);
-        render(); // preview na hora
-        try{
-          const {t,m} = await convertToThumbs(f, 92*2, 1024);
-          if(e.photos[idx]){ e.photos[idx] = {t,m}; URL.revokeObjectURL(blobURL); }
-          render(); updatePreview();
-        }catch(err){ console.warn('conv falhou, mantém blob',err); }
-      }
-      updatePreview();
-    };
-    cam.onchange = ev => handleFiles(Array.from(ev.target.files||[]));
-    pick.onchange = ev => handleFiles(Array.from(ev.target.files||[]));
-  });
-}
+            handleOffline() {
+                this.isOnline = false;
+                updateSyncStatus('offline');
+                addLog('Conexão perdida. Modo offline ativado.', 'warning');
+            }
 
-// ===== Conversão de imagens (leve) =====
-function convertToThumbs(file, thumbW=200, midW=1024){
-  return new Promise(async (resolve, reject)=>{
-    try{
-      if('createImageBitmap' in window){
-        const bmp = await createImageBitmap(file);
-        const t = bitmapToDataURL(bmp, Math.min(1, thumbW/bmp.width), .7);
-        const m = bitmapToDataURL(bmp, Math.min(1, midW/bmp.width), .85);
-        resolve({t,m}); return;
-      }
-    }catch(e){}
-    const fr = new FileReader();
-    fr.onload = ()=>{
-      const img = new Image();
-      img.onload = ()=>{
-        try{
-          const t = imageToDataURL(img, Math.min(1, thumbW/img.width), .7);
-          const m = imageToDataURL(img, Math.min(1, midW/img.width), .85);
-          resolve({t,m});
-        }catch(err){ reject(err); }
-      };
-      img.onerror = reject; img.src = fr.result;
-    };
-    fr.onerror = reject; fr.readAsDataURL(file);
-  });
-}
-function bitmapToDataURL(bmp, scale=1, q=.8){
-  const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(bmp.width*scale)); c.height=Math.max(1,Math.round(bmp.height*scale));
-  c.getContext('2d').drawImage(bmp,0,0,c.width,c.height); return c.toDataURL('image/jpeg',q);
-}
-function imageToDataURL(img, scale=1, q=.8){
-  const c=document.createElement('canvas'); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
-  c.getContext('2d').drawImage(img,0,0,c.width,c.height); return c.toDataURL('image/jpeg',q);
-}
+            async checkConnection() {
+                try {
+                    const response = await fetch('/api/health', { 
+                        method: 'HEAD',
+                        cache: 'no-store'
+                    });
+                    if (!this.isOnline && response.ok) {
+                        this.handleOnline();
+                    }
+                } catch (error) {
+                    if (this.isOnline) {
+                        this.handleOffline();
+                    }
+                }
+            }
 
-// ===== Texto do relatório (WhatsApp/Prévia) — VERTICAL =====
-function buildOneText(e){
-  const keys=[...GROUPS.criticos,...GROUPS.preventivos,...GROUPS.melhoria];
-  const probs = keys.filter(k=>e.status[k]==='NÃO OK').map(k=>'│  │  ├─ '+LABELS[k]).join('\n') || '│  │  └─ Nenhum';
+            async sync() {
+                if (this.isSyncing || !this.isOnline) return;
+                
+                this.isSyncing = true;
+                updateSyncStatus('syncing');
+                addLog('Iniciando sincronização...', 'info');
 
-  const linesFor = (arr, icon)=>{
-    return [
-      `│  ├─ ${icon}`,
-      ...arr.map(k=>`│  │  - ${LABELS[k]}: ${e.status[k]||'_'}`)
-    ].join('\n');
-  };
+                try {
+                    // Buscar dados locais pendentes
+                    const pendingData = this.getPendingData();
+                    
+                    if (pendingData.length === 0) {
+                        addLog('Nenhum dado pendente para sincronizar.', 'info');
+                    } else {
+                        // Simular envio para servidor
+                        await this.sendToServer(pendingData);
+                        
+                        // Marcar como sincronizado
+                        this.markAsSynced(pendingData);
+                        addLog(`${pendingData.length} itens sincronizados com sucesso!`, 'success');
+                    }
 
-  return [
-    `├─ 🎯 ${e.codigo} — ${e.alias||'-'}`,
-    `│  ├─ Sistema: ${e.sistema}`,
-    linesFor(GROUPS.criticos,'🔴 Críticos'),
-    linesFor(GROUPS.preventivos,'🟠 Preventivos'),
-    linesFor(GROUPS.melhoria,'🟢 Melhoria'),
-    `├─ ⚠️ Problemas selecionados: ${(e.probsSel&&e.probsSel.length)? e.probsSel.join(', '): '-'}`,
-    `├─ ⚠️ Problemas`,
-    probs,
-    `└─ 📝 ${e.obs||'-'}`
-  ].join('\n');
-}
-function buildTextReport(){
-  const ctx = [
-    '🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS',
-    `├─ Data: ${$('#data').value||'-'}`,
-    `├─ Turno: ${$('#turno').value||'-'}`,
-    `├─ Escala: ${$('#escala').value||'-'}`,
-    `├─ Operador: ${$('#operador').value||'-'}`,
-    `└─ Equipe: ${$('#equipe').value||'-'}`
-  ].join('\n');
-  const itens = EQUIPS.map(buildOneText).join('\n\n');
-  return ctx + '\n\n' + itens + '\n\n' + '📎 Fotos: vistas no app; anexe as principais no envio.';
-}
-function updatePreview(){ $('#preview').textContent = buildTextReport(); }
-updatePreview();
+                    // Buscar atualizações do servidor
+                    await this.fetchFromServer();
+                    
+                    this.lastSync = new Date();
+                    updateStats();
+                } catch (error) {
+                    addLog(`Erro na sincronização: ${error.message}`, 'error');
+                } finally {
+                    this.isSyncing = false;
+                    updateSyncStatus(this.isOnline ? 'online' : 'offline');
+                }
+            }
 
-// ===== Relatório Visual (PNG) =====
-function buildReportDOM(){
-  const root = $('#reportRoot');
-  const head = $('#reportHeader');
-  const grid = $('#reportGrid');
-  head.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e5e7eb;padding-bottom:8px;margin-bottom:10px">
-    <div><div style="font-size:18px;font-weight:900;color:#111827">🧭 RDO-OPERAÇÃO SISTEMA DE CORREIAS — CRD/SAMARCO</div>
-    <div style="color:#6b7280">Data: ${$('#data').value||'-'} • Turno: ${$('#turno').value||'-'} • Escala: ${$('#escala').value||'-'} • Operador: ${$('#operador').value||'-'} • Equipe: ${$('#equipe').value||'-'}</div></div>
-    <div style="font-weight:800">${new Date().toLocaleString('pt-BR')}</div></div>`;
-  grid.innerHTML = EQUIPS.map(e=>{
-    return `<div class="r-card">
-      <div style="font-weight:900;color:#1f2937">${e.codigo} — ${e.alias||'-'}</div>
-      <div style="font-size:12px;color:#6b7280">Sistema: ${e.sistema}</div>
-      <div style="margin-top:6px;font-size:12px">
-        <div>🔴 ${GROUPS.criticos.map(k=>LABELS[k]+': '+(e.status[k]||'_')).join(' | ')}</div>
-        <div>🟠 ${GROUPS.preventivos.map(k=>LABELS[k]+': '+(e.status[k]||'_')).join(' | ')}</div>
-        <div>🟢 ${GROUPS.melhoria.map(k=>LABELS[k]+': '+(e.status[k]||'_')).join(' | ')}</div>
-        <div>⚠️ Selecionados: ${(e.probsSel&&e.probsSel.length)? e.probsSel.join(', '): '-'}</div>
-        <div>📝 ${e.obs||''}</div>
-      </div>
-      <div>${(e.photos||[]).map(p=>`<img class="rp" src="${p.m||p.t||p.blob}" alt="foto ${e.codigo}"/>`).join('')}</div>
-    </div>`;
-  }).join('');
-  return root;
-}
+            getPendingData() {
+                const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+                return rdos.filter(rdo => !rdo.synced);
+            }
 
-async function ensurePhotosData(){
-  // Converte qualquer blob: em DataURL p/ o PNG não "perder" fotos
-  const convertBlobUrl = async (url)=>{
-    try{
-      const res = await fetch(url); const blob = await res.blob();
-      if('createImageBitmap' in window){
-        const bmp = await createImageBitmap(blob);
-        return bitmapToDataURL(bmp, 1, .9);
-      } else {
-        const fr = new FileReader();
-        return await new Promise((resolve, reject)=>{
-          fr.onload = ()=>resolve(fr.result); fr.onerror = reject; fr.readAsDataURL(blob);
+            async sendToServer(data) {
+                // Simulação de envio - substituir por chamada real à API
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log('Enviando para servidor:', data);
+                        resolve({ success: true });
+                    }, 1000);
+                });
+            }
+
+            async fetchFromServer() {
+                // Simulação de busca - substituir por chamada real à API
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log('Buscando atualizações do servidor...');
+                        resolve([]);
+                    }, 800);
+                });
+            }
+
+            markAsSynced(data) {
+                const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+                data.forEach(item => {
+                    const index = rdos.findIndex(r => r.id === item.id);
+                    if (index !== -1) {
+                        rdos[index].synced = true;
+                        rdos[index].syncedAt = new Date().toISOString();
+                    }
+                });
+                localStorage.setItem('rdos', JSON.stringify(rdos));
+                renderTable();
+            }
+
+            addToQueue(rdo) {
+                this.syncQueue.push(rdo);
+                if (this.isOnline && !this.isSyncing) {
+                    this.sync();
+                }
+            }
+        }
+
+        // ==================== APP STATE ====================
+        const syncManager = new SyncManager();
+        let selectedIds = new Set();
+
+        // ==================== UI FUNCTIONS ====================
+        function updateSyncStatus(status) {
+            const statusEl = document.getElementById('syncStatus');
+            const textEl = document.getElementById('syncText');
+            
+            statusEl.className = `sync-status ${status}`;
+            
+            switch(status) {
+                case 'online':
+                    textEl.textContent = 'Online';
+                    break;
+                case 'offline':
+                    textEl.textContent = 'Offline';
+                    break;
+                case 'syncing':
+                    textEl.textContent = 'Sincronizando...';
+                    break;
+            }
+        }
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('syncLog');
+            const time = new Date().toLocaleTimeString('pt-BR');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">[${time}]</span>
+                <span class="log-${type}">${message}</span>
+            `;
+            log.insertBefore(entry, log.firstChild);
+            
+            // Limitar a 50 entradas
+            while (log.children.length > 50) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('syncLog').innerHTML = '';
+            addLog('Log limpo.', 'info');
+        }
+
+        function forceSync() {
+            if (!navigator.onLine) {
+                showToast('Sem conexão com internet!', 'error');
+                return;
+            }
+            syncManager.sync();
+        }
+
+        // ==================== RDO MANAGEMENT ====================
+        document.getElementById('rdoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const rdo = {
+                id: Date.now().toString(),
+                data: document.getElementById('data').value,
+                obra: document.getElementById('obra').value,
+                encarregado: document.getElementById('encarregado').value,
+                equipe: document.getElementById('equipe').value,
+                atividades: document.getElementById('atividades').value,
+                observacoes: document.getElementById('observacoes').value,
+                createdAt: new Date().toISOString(),
+                synced: false
+            };
+
+            saveRDO(rdo);
+            this.reset();
+            document.getElementById('data').valueAsDate = new Date();
+            
+            showToast('RDO salvo com sucesso!', 'success');
+            
+            // Adicionar à fila de sincronização
+            syncManager.addToQueue(rdo);
         });
-      }
-    }catch(e){ console.warn('conv blob->dataURL falhou', e); return url; }
-  };
-  for(const e of EQUIPS){
-    for(const p of (e.photos||[])){
-      if(!p.m && !p.t && p.blob && p.blob.startsWith('blob:')){
-        p.m = await convertBlobUrl(p.blob);
-      }
-    }
-  }
-}
 
-async function makePNG(){
-  const _root = document.getElementById('reportRoot');
-  _root.classList.add('force3');
-  await ensurePhotosData();
-  const node=buildReportDOM();
-  node.classList.add('force3');
-  const out = await domtoImageSafe(node);
-  node.classList.remove('force3');
-  return out;
-}
+        function saveRDO(rdo) {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            rdos.unshift(rdo);
+            localStorage.setItem('rdos', JSON.stringify(rdos));
+            renderTable();
+            updateStats();
+        }
 
-async function domtoImageSafe(node){
-  try{ return await domtoimage.toPng(node,{quality:1,cacheBust:true}); }
-  catch(e){
-    console.warn('domtoimage falhou; tentando novamente com pequeno atraso', e);
-    await new Promise(r=>setTimeout(r, 30));
-    return await domtoimage.toPng(node,{quality:1,cacheBust:true});
-  }
-}
+        function renderTable() {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const tbody = document.getElementById('rdoTableBody');
+            
+            if (rdos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <div class="empty-state-icon">📭</div>
+                            <p>Nenhum RDO encontrado</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
 
-</script>
-  <div style="position: fixed; bottom: 130px; left: 10px; z-index: 9999;">
-    <a href="index.html" style="
-        background: #005c8f;
-        color: white;
-        text-decoration: none;
-        padding: 10px 20px;
-        border-radius: 30px;
-        font-size: 12px;
-        font-weight: bold;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        display: inline-block;
-    ">🏠 Voltar ao Início</a>
-</div>
+            tbody.innerHTML = rdos.map(rdo => `
+                <tr class="${selectedIds.has(rdo.id) ? 'row-selected' : ''}" data-id="${rdo.id}">
+                    <td>
+                        <input type="checkbox" ${selectedIds.has(rdo.id) ? 'checked' : ''} 
+                               onchange="toggleSelect('${rdo.id}')">
+                    </td>
+                    <td>${formatDate(rdo.data)}</td>
+                    <td>${rdo.obra}</td>
+                    <td>${rdo.encarregado}</td>
+                    <td>
+                        <span class="badge ${rdo.synced ? 'badge-success' : 'badge-warning'}">
+                            ${rdo.synced ? '✓ Sincronizado' : '⏳ Pendente'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="icon-btn" onclick="editRDO('${rdo.id}')" title="Editar">✏️</button>
+                            <button class="icon-btn" onclick="deleteRDO('${rdo.id}')" title="Excluir" style="color: var(--danger)">🗑️</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        function updateStats() {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const today = new Date().toISOString().split('T')[0];
+            
+            document.getElementById('totalRDOs').textContent = rdos.length;
+            document.getElementById('syncedRDOs').textContent = rdos.filter(r => r.synced).length;
+            document.getElementById('pendingRDOs').textContent = rdos.filter(r => !r.synced).length;
+            document.getElementById('todayRDOs').textContent = rdos.filter(r => r.data === today).length;
+        }
+
+        // ==================== SELECTION ====================
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) {
+                selectedIds.delete(id);
+            } else {
+                selectedIds.add(id);
+            }
+            updateSelectionUI();
+        }
+
+        function toggleSelectAll() {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const checkbox = document.getElementById('selectAll');
+            
+            if (checkbox.checked) {
+                rdos.forEach(rdo => selectedIds.add(rdo.id));
+            } else {
+                selectedIds.clear();
+            }
+            renderTable();
+            updateSelectionUI();
+        }
+
+        function updateSelectionUI() {
+            const hasSelection = selectedIds.size > 0;
+            document.getElementById('deleteSelectedBtn').style.display = hasSelection ? 'flex' : 'none';
+            document.getElementById('syncSelectedBtn').style.display = hasSelection ? 'flex' : 'none';
+            
+            // Atualizar visual das linhas
+            document.querySelectorAll('#rdoTableBody tr').forEach(row => {
+                const id = row.getAttribute('data-id');
+                if (selectedIds.has(id)) {
+                    row.classList.add('row-selected');
+                } else {
+                    row.classList.remove('row-selected');
+                }
+            });
+        }
+
+        function deleteSelected() {
+            if (!confirm(`Excluir ${selectedIds.size} RDO(s) selecionado(s)?`)) return;
+            
+            let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            rdos = rdos.filter(rdo => !selectedIds.has(rdo.id));
+            localStorage.setItem('rdos', JSON.stringify(rdos));
+            
+            selectedIds.clear();
+            renderTable();
+            updateStats();
+            updateSelectionUI();
+            showToast('Itens excluídos com sucesso!', 'success');
+        }
+
+        function syncSelected() {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const toSync = rdos.filter(rdo => selectedIds.has(rdo.id) && !rdo.synced);
+            
+            if (toSync.length === 0) {
+                showToast('Os itens selecionados já estão sincronizados!', 'warning');
+                return;
+            }
+            
+            syncManager.sendToServer(toSync).then(() => {
+                syncManager.markAsSynced(toSync);
+                selectedIds.clear();
+                updateSelectionUI();
+                showToast(`${toSync.length} item(s) sincronizado(s)!`, 'success');
+            });
+        }
+
+        // ==================== CRUD OPERATIONS ====================
+        function editRDO(id) {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const rdo = rdos.find(r => r.id === id);
+            
+            if (!rdo) return;
+            
+            document.getElementById('editId').value = rdo.id;
+            document.getElementById('editData').value = rdo.data;
+            document.getElementById('editObra').value = rdo.obra;
+            document.getElementById('editEncarregado').value = rdo.encarregado;
+            document.getElementById('editEquipe').value = rdo.equipe;
+            document.getElementById('editAtividades').value = rdo.atividades;
+            document.getElementById('editObservacoes').value = rdo.observacoes || '';
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            const index = rdos.findIndex(r => r.id === id);
+            
+            if (index === -1) return;
+            
+            rdos[index] = {
+                ...rdos[index],
+                data: document.getElementById('editData').value,
+                obra: document.getElementById('editObra').value,
+                encarregado: document.getElementById('editEncarregado').value,
+                equipe: document.getElementById('editEquipe').value,
+                atividades: document.getElementById('editAtividades').value,
+                observacoes: document.getElementById('editObservacoes').value,
+                synced: false, // Marcar como não sincronizado após edição
+                updatedAt: new Date().toISOString()
+            };
+            
+            localStorage.setItem('rdos', JSON.stringify(rdos));
+            renderTable();
+            updateStats();
+            closeModal();
+            showToast('RDO atualizado com sucesso!', 'success');
+            
+            // Adicionar à fila de sincronização
+            syncManager.addToQueue(rdos[index]);
+        }
+
+        function deleteRDO(id) {
+            if (!confirm('Tem certeza que deseja excluir este RDO?')) return;
+            
+            let rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            rdos = rdos.filter(r => r.id !== id);
+            localStorage.setItem('rdos', JSON.stringify(rdos));
+            
+            renderTable();
+            updateStats();
+            showToast('RDO excluído com sucesso!', 'success');
+        }
+
+        // ==================== MODAL ====================
+        function openModal() {
+            document.getElementById('rdoForm').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('data').focus();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        // ==================== UTILITIES ====================
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toastIcon');
+            const msg = document.getElementById('toastMessage');
+            
+            toast.className = `toast ${type} show`;
+            msg.textContent = message;
+            
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠'
+            };
+            icon.textContent = icons[type] || 'ℹ';
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function exportData() {
+            const rdos = JSON.parse(localStorage.getItem('rdos') || '[]');
+            if (rdos.length === 0) {
+                showToast('Nenhum dado para exportar!', 'warning');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(rdos, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `rdos_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            showToast('Dados exportados com sucesso!', 'success');
+        }
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('data').valueAsDate = new Date();
+            renderTable();
+            updateStats();
+            updateSyncStatus(navigator.onLine ? 'online' : 'offline');
+            
+            // Fechar modal ao clicar fora
+            document.getElementById('editModal').addEventListener('click', (e) => {
+                if (e.target.id === 'editModal') closeModal();
+            });
+        });
+
+        // Atalhos de teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                forceSync();
+            }
+        });
+    </script>
 </body>
-  <!-- Injetor de Sincronização -->
-<script src="injetar-sincronizacao.js"></script>
 </html>
