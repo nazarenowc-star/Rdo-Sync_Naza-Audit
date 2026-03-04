@@ -1,44 +1,265 @@
 // ============================================
-// BRIDGE DE SINCRONIZAÇÃO MELHORADA
+// BRIDGE DE SINCRONIZAÇÃO - VERSÃO ULTRA-ESTÁVEL
 // ============================================
 
-// Estado da sincronização
-let lastSyncTime = null;
-let syncEnabled = true;
-let lastSentText = ''; // Para evitar duplicatas
+// Configurações
+const CONFIG = {
+    COLECTION: 'rdo_operadores',
+    CHECK_INTERVAL: 5000, // 5 segundos
+    RETRY_INTERVAL: 3000,  // 3 segundos
+    MAX_RETRIES: 999999,    // infinito
+    MIN_TEXT_LENGTH: 20
+};
 
-// ===== FUNÇÕES PARA O RDO-CORREIAS =====
-function injectIntoRDO() {
-    console.log('🔄 Bridge: Injetando listener no RDO-Correias...');
+// Estado
+let syncEnabled = true;
+let firebaseReady = false;
+let retryCount = 0;
+let lastSendTime = 0;
+let lastTextHash = '';
+
+// ===== LOG VISÍVEL =====
+function addLogPanel() {
+    if (document.getElementById('sync-log-panel')) return;
     
-    // Observar mudanças na preview
-    const previewElement = document.getElementById('preview');
-    if (!previewElement) {
-        console.log('⏳ Aguardando preview do RDO-Correias...');
-        setTimeout(injectIntoRDO, 1000);
+    const panel = document.createElement('div');
+    panel.id = 'sync-log-panel';
+    panel.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+        background: white;
+        border: 3px solid #005c8f;
+        border-radius: 10px;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 11px;
+        z-index: 10000;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    `;
+    
+    panel.innerHTML = `
+        <div style="font-weight:bold; color:#005c8f; margin-bottom:8px; display:flex; justify-content:space-between">
+            <span>📡 LOG DE SINCRONIZAÇÃO</span>
+            <span id="sync-connection-status" style="color:#ff9800">● CONECTANDO</span>
+        </div>
+        <div id="sync-log-messages" style="height:300px; overflow-y:auto; background:#f5f5f5; padding:5px; border-radius:5px"></div>
+        <div style="margin-top:8px; display:flex; gap:5px">
+            <button id="sync-reset-btn" style="flex:1; background:#005c8f; color:white; border:none; border-radius:5px; padding:5px; cursor:pointer">⟲ RESET</button>
+            <button id="sync-test-btn" style="flex:1; background:#28a745; color:white; border:none; border-radius:5px; padding:5px; cursor:pointer">🔍 TESTAR</button>
+        </div>
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // Botão de reset
+    document.getElementById('sync-reset-btn').onclick = () => {
+        logMessage('🔄 Reset manual...');
+        localStorage.removeItem('firebase_initialized');
+        setTimeout(() => window.location.reload(), 1000);
+    };
+    
+    // Botão de teste
+    document.getElementById('sync-test-btn').onclick = testConnection;
+}
+
+function logMessage(msg, type = 'info') {
+    const logDiv = document.getElementById('sync-log-messages');
+    if (!logDiv) return;
+    
+    const time = new Date().toLocaleTimeString();
+    const colors = {
+        info: '#0066cc',
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ff9800'
+    };
+    
+    const entry = document.createElement('div');
+    entry.style.cssText = `
+        margin: 2px 0;
+        padding: 2px;
+        border-bottom: 1px solid #eee;
+        color: ${colors[type] || '#333'};
+    `;
+    entry.textContent = `[${time}] ${msg}`;
+    
+    logDiv.appendChild(entry);
+    logDiv.scrollTop = logDiv.scrollHeight;
+    
+    console.log(`[SYNC] ${msg}`);
+}
+
+function updateConnectionStatus(status, message) {
+    const statusEl = document.getElementById('sync-connection-status');
+    if (!statusEl) return;
+    
+    const colors = {
+        connected: '#28a745',
+        connecting: '#ff9800',
+        error: '#dc3545',
+        disabled: '#999'
+    };
+    
+    statusEl.style.color = colors[status] || '#ff9800';
+    statusEl.textContent = `● ${message || status.toUpperCase()}`;
+}
+
+// ===== VERIFICAÇÃO DO FIREBASE =====
+async function ensureFirebase() {
+    return new Promise((resolve) => {
+        // Se já está pronto
+        if (window.firebase && window.firebase.firestore) {
+            logMessage('✅ Firebase já disponível');
+            firebaseReady = true;
+            updateConnectionStatus('connected', 'CONECTADO');
+            resolve(true);
+            return;
+        }
+        
+        logMessage('⏳ Aguardando Firebase...');
+        
+        // Carregar Firebase se necessário
+        const loadFirebase = () => {
+            if (document.querySelector('script[src*="firebase"]')) {
+                logMessage('⏳ Firebase carregando...');
+                setTimeout(() => {
+                    if (window.firebase) {
+                        logMessage('✅ Firebase carregado');
+                        firebaseReady = true;
+                        updateConnectionStatus('connected', 'CONECTADO');
+                        resolve(true);
+                    } else {
+                        retryCount++;
+                        if (retryCount < 10) {
+                            logMessage(`⏳ Tentativa ${retryCount}/10...`);
+                            setTimeout(loadFirebase, 2000);
+                        } else {
+                            logMessage('❌ Firebase não carregou', 'error');
+                            updateConnectionStatus('error', 'ERRO');
+                            resolve(false);
+                        }
+                    }
+                }, 2000);
+            } else {
+                logMessage('📥 Carregando Firebase...');
+                const script = document.createElement('script');
+                script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
+                script.onload = () => {
+                    const firestore = document.createElement('script');
+                    firestore.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
+                    firestore.onload = () => {
+                        logMessage('✅ Firebase scripts carregados');
+                        setTimeout(loadFirebase, 500);
+                    };
+                    document.head.appendChild(firestore);
+                };
+                document.head.appendChild(script);
+            }
+        };
+        
+        loadFirebase();
+    });
+}
+
+// ===== TESTE DE CONEXÃO =====
+async function testConnection() {
+    logMessage('🔍 Testando conexão...', 'info');
+    
+    if (!firebaseReady || !window.firebase) {
+        logMessage('❌ Firebase não está pronto', 'error');
         return;
     }
     
-    console.log('✅ Preview encontrado! Monitorando...');
+    try {
+        const testDoc = await firebase.firestore()
+            .collection(CONFIG.COLECTION)
+            .limit(1)
+            .get();
+        
+        logMessage(`✅ Conexão OK! ${testDoc.size} documentos encontrados`, 'success');
+        updateConnectionStatus('connected', 'CONECTADO');
+        return true;
+    } catch (error) {
+        logMessage(`❌ Erro de conexão: ${error.message}`, 'error');
+        updateConnectionStatus('error', 'ERRO');
+        return false;
+    }
+}
+
+// ===== FUNÇÕES PARA RDO-CORREIAS =====
+async function initRDO() {
+    logMessage('📱 Inicializando RDO-Correias...');
     
-    // Função para capturar e enviar o texto
-    const captureAndSend = async () => {
-        if (!syncEnabled) return;
+    // Aguardar Firebase
+    const fbReady = await ensureFirebase();
+    if (!fbReady) {
+        logMessage('❌ Falha ao inicializar Firebase', 'error');
+        return;
+    }
+    
+    // Aguardar preview
+    let attempts = 0;
+    const waitForPreview = setInterval(() => {
+        const preview = document.getElementById('preview');
+        attempts++;
         
-        const rdoText = previewElement.textContent || previewElement.innerText;
+        if (preview) {
+            clearInterval(waitForPreview);
+            logMessage('✅ Preview encontrado!');
+            setupRDOMonitor(preview);
+        } else if (attempts > 20) {
+            clearInterval(waitForPreview);
+            logMessage('❌ Preview não encontrado', 'error');
+        }
+    }, 1000);
+}
+
+function setupRDOMonitor(previewElement) {
+    logMessage('🔍 Configurando monitores...');
+    
+    // Função de envio
+    const sendCurrentText = async () => {
+        if (!syncEnabled) {
+            logMessage('⏸️ Sincronização pausada', 'warning');
+            return;
+        }
         
-        // Só enviar se tiver conteúdo significativo e diferente do último
-        if (rdoText && rdoText.length > 50 && rdoText !== lastSentText) {
-            console.log('📤 Enviando novo relatório...');
-            await sendToFirebase(rdoText);
-            lastSentText = rdoText;
+        const text = previewElement.textContent || previewElement.innerText;
+        
+        if (!text || text.length < CONFIG.MIN_TEXT_LENGTH) {
+            logMessage('📝 Texto muito curto, ignorando', 'info');
+            return;
+        }
+        
+        // Gerar hash simples para log
+        const hash = text.substring(0, 50).replace(/\s+/g, ' ');
+        
+        // Evitar spam (mínimo 2 segundos entre envios)
+        const now = Date.now();
+        if (now - lastSendTime < 2000) {
+            logMessage('⏳ Aguardando intervalo entre envios...', 'info');
+            return;
+        }
+        
+        lastSendTime = now;
+        logMessage(`📤 Enviando: "${hash}..."`, 'info');
+        
+        try {
+            await sendToFirebase(text);
+            logMessage('✅ Enviado com sucesso!', 'success');
+        } catch (error) {
+            logMessage(`❌ Erro no envio: ${error.message}`, 'error');
         }
     };
     
-    // 1. Observer para mudanças no DOM
+    // 1. Observer
     const observer = new MutationObserver(() => {
-        clearTimeout(window._rdoDebounce);
-        window._rdoDebounce = setTimeout(captureAndSend, 1000);
+        clearTimeout(window.sendTimeout);
+        window.sendTimeout = setTimeout(sendCurrentText, 1000);
     });
     
     observer.observe(previewElement, {
@@ -48,362 +269,292 @@ function injectIntoRDO() {
         attributes: true
     });
     
-    // 2. Observer também no elemento pai (por segurança)
-    if (previewElement.parentElement) {
-        observer.observe(previewElement.parentElement, {
-            childList: true,
-            subtree: true
-        });
-    }
+    // 2. Intervalo regular (a cada 10 segundos)
+    setInterval(() => {
+        if (syncEnabled) {
+            logMessage('⏰ Envio periódico...');
+            sendCurrentText();
+        }
+    }, 10000);
     
-    // 3. Capturar a cada 30 segundos (backup)
-    setInterval(captureAndSend, 30000);
-    
-    // 4. Botões que disparam relatório
-    const buttons = ['sendWA', 'copyTxt', 'pngBtn'];
-    buttons.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.addEventListener('click', () => {
-                setTimeout(captureAndSend, 500);
-            });
+    // 3. Botões
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn && ['sendWA', 'copyTxt', 'pngBtn', 'addEquip'].some(id => btn.id === id)) {
+            logMessage(`🖱️ Botão ${btn.id} clicado`);
+            setTimeout(sendCurrentText, 500);
         }
     });
     
-    // 5. Inputs do checklist (mudanças nos radios)
+    // 4. Inputs
     document.addEventListener('change', (e) => {
         if (e.target.matches('input[type="radio"]')) {
-            setTimeout(captureAndSend, 500);
+            logMessage(`📻 Radio changed: ${e.target.name}`);
+            setTimeout(sendCurrentText, 300);
         }
     });
     
-    // 6. Botão de adicionar equipamento
-    const addBtn = document.getElementById('addEquip');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            setTimeout(captureAndSend, 1000);
-        });
-    }
+    // 5. Envio inicial
+    setTimeout(sendCurrentText, 2000);
     
-    // Adicionar botão de status
-    addStatusButton('rdo');
-    
-    // Enviar imediatamente se já houver conteúdo
-    setTimeout(captureAndSend, 2000);
+    logMessage('✅ Monitores configurados!');
 }
 
-// ===== FUNÇÕES PARA O COMPARADOR-V70 =====
-function injectIntoComparador() {
-    console.log('🔄 Bridge: Injetando listener no Comparador-V70...');
+async function sendToFirebase(text) {
+    if (!firebaseReady || !window.firebase) {
+        throw new Error('Firebase não disponível');
+    }
     
-    const checkTextarea = () => {
-        const textarea = document.getElementById('txtOperadores');
-        if (!textarea) {
-            console.log('⏳ Aguardando textarea do Comparador...');
-            setTimeout(checkTextarea, 1000);
-            return;
-        }
-        
-        console.log('✅ Textarea encontrada! Monitorando Firebase...');
-        
-        // Inscrever para receber atualizações
-        subscribeToFirebase(textarea);
-        
-        // Adicionar botão de força bruta
-        addForceButton(textarea);
-        
-        // Adicionar botão de status
-        addStatusButton('comparador');
+    const db = firebase.firestore();
+    
+    // Extrair data do texto
+    const dataMatch = text.match(/Data:\s*(\d{4}-\d{2}-\d{2})/);
+    const data = dataMatch ? dataMatch[1] : new Date().toISOString().split('T')[0];
+    
+    // Extrair equipamentos
+    const equipMatch = text.match(/🎯\s*([^\n]+)/g) || [];
+    const equipamentos = equipMatch.map(e => e.replace('🎯', '').trim());
+    
+    const docData = {
+        text: text,
+        data: data,
+        equipamentos: equipamentos,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        syncedAt: new Date().toISOString(),
+        device: /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+        userAgent: navigator.userAgent.substring(0, 100)
     };
     
-    checkTextarea();
+    const docRef = await db.collection(CONFIG.COLECTION).add(docData);
+    localStorage.setItem('rdoLastSync', new Date().toISOString());
+    
+    return docRef;
 }
 
-// ===== FIREBASE FUNCTIONS =====
-async function sendToFirebase(rdoText) {
-    if (!rdoText || rdoText.trim().length < 50) return;
+// ===== FUNÇÕES PARA COMPARADOR-V70 =====
+async function initComparador() {
+    logMessage('📊 Inicializando Comparador-V70...');
     
-    try {
-        const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-        const sessionId = getSessionId();
+    const fbReady = await ensureFirebase();
+    if (!fbReady) return;
+    
+    let attempts = 0;
+    const waitForTextarea = setInterval(() => {
+        const textarea = document.getElementById('txtOperadores');
+        attempts++;
         
-        // Salvar no localStorage para saber que foi enviado
-        localStorage.setItem('rdoLastSync', new Date().toISOString());
-        
-        const docRef = await db.collection(RDO_COLLECTION).add({
-            text: rdoText,
-            timestamp: timestamp,
-            sessionId: sessionId,
-            syncedAt: new Date().toISOString(),
-            source: 'rdo-correias'
-        });
-        
-        console.log('✅ Dados enviados para Firebase:', docRef.id);
-        updateStatus('rdo', 'success', '✓ Sincronizado');
-        
-        // Feedback visual
-        showToast('Relatório sincronizado!');
-        
-    } catch (error) {
-        console.error('❌ Erro ao enviar para Firebase:', error);
-        updateStatus('rdo', 'error', '✗ Erro');
-    }
+        if (textarea) {
+            clearInterval(waitForTextarea);
+            logMessage('✅ Textarea encontrada!');
+            setupComparadorListener(textarea);
+        } else if (attempts > 20) {
+            clearInterval(waitForTextarea);
+            logMessage('❌ Textarea não encontrada', 'error');
+        }
+    }, 1000);
 }
 
-function subscribeToFirebase(textarea) {
-    console.log('📡 Inscrevendo para atualizações do Firebase...');
+function setupComparadorListener(textarea) {
+    logMessage('🔍 Configurando listener do Firebase...');
     
-    const lastSync = localStorage.getItem('lastComparadorSync');
-    let lastSyncTime = lastSync ? new Date(lastSync) : new Date(0);
+    let lastSyncTime = localStorage.getItem('lastComparadorSync') 
+        ? new Date(localStorage.getItem('lastComparadorSync')) 
+        : new Date(0);
     
-    const query = db.collection(RDO_COLLECTION)
-        .orderBy('timestamp', 'desc')
-        .limit(20);
-    
-    query.onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach(async (change) => {
-            if (change.type === 'added') {
-                const data = change.doc.data();
-                const docTime = data.timestamp?.toDate() || new Date(data.syncedAt);
+    // Função para buscar novos documentos
+    const fetchNewData = async () => {
+        if (!firebaseReady) return;
+        
+        try {
+            const db = firebase.firestore();
+            const snapshot = await db.collection(CONFIG.COLECTION)
+                .where('timestamp', '>', lastSyncTime)
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get();
+            
+            if (!snapshot.empty) {
+                logMessage(`📥 ${snapshot.size} novo(s) documento(s)`);
                 
-                if (docTime > lastSyncTime) {
-                    console.log('📥 Novo dado recebido:', change.doc.id);
-                    
-                    // Adicionar ao textarea
-                    const added = appendToTextarea(textarea, data.text);
-                    
-                    if (added) {
-                        // Atualizar última sincronização
-                        lastSyncTime = new Date();
-                        localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
-                        
-                        updateStatus('comparador', 'success', '✓ Atualizado');
-                        showToast('Novo relatório recebido!');
-                        
-                        // Auto-processar após 2 segundos
-                        setTimeout(() => {
-                            if (typeof processOperadoresCompleto === 'function') {
-                                processOperadoresCompleto();
-                            }
-                        }, 2000);
+                let added = 0;
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (appendToTextarea(textarea, data.text)) {
+                        added++;
                     }
+                });
+                
+                if (added > 0) {
+                    logMessage(`✅ ${added} relatório(s) adicionado(s)`, 'success');
+                    lastSyncTime = new Date();
+                    localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
+                    
+                    // Auto-processar
+                    setTimeout(() => {
+                        if (typeof processOperadoresCompleto === 'function') {
+                            logMessage('⚙️ Processando automaticamente...');
+                            processOperadoresCompleto();
+                        }
+                    }, 2000);
                 }
             }
+        } catch (error) {
+            logMessage(`❌ Erro ao buscar: ${error.message}`, 'error');
+        }
+    };
+    
+    // Listener em tempo real
+    const db = firebase.firestore();
+    db.collection(CONFIG.COLECTION)
+        .orderBy('timestamp', 'desc')
+        .limit(20)
+        .onSnapshot((snapshot) => {
+            snapshot.docChanges().forEach(change => {
+                if (change.type === 'added') {
+                    const data = change.doc.data();
+                    const docTime = data.timestamp?.toDate() || new Date(data.syncedAt);
+                    
+                    if (docTime > lastSyncTime) {
+                        logMessage(`📨 Novo documento em tempo real`);
+                        if (appendToTextarea(textarea, data.text)) {
+                            lastSyncTime = new Date();
+                            localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
+                        }
+                    }
+                }
+            });
+        }, (error) => {
+            logMessage(`❌ Erro no listener: ${error.message}`, 'error');
         });
-    }, (error) => {
-        console.error('❌ Erro no listener Firebase:', error);
-        updateStatus('comparador', 'error', '✗ Offline');
-    });
+    
+    // Buscar a cada 10 segundos
+    setInterval(fetchNewData, 10000);
+    
+    // Buscar imediatamente
+    setTimeout(fetchNewData, 2000);
+    
+    // Adicionar botão de busca manual
+    addManualFetchButton(textarea);
 }
 
 function appendToTextarea(textarea, newText) {
     if (!textarea) return false;
     
-    let currentText = textarea.value;
+    const currentText = textarea.value;
     
-    if (!currentText.trim()) {
-        textarea.value = newText;
-        return true;
-    }
-    
-    // Verificar duplicatas (mais rigoroso)
-    const normalizedCurrent = currentText.replace(/\s+/g, ' ').trim();
-    const normalizedNew = newText.replace(/\s+/g, ' ').trim();
-    
-    if (normalizedCurrent.includes(normalizedNew.substring(0, 100))) {
-        console.log('📝 Conteúdo similar ignorado');
+    // Verificar se já existe (anti-duplicata básico)
+    if (currentText.includes(newText.substring(0, 100))) {
+        logMessage('📝 Conteúdo já existe, ignorando', 'info');
         return false;
     }
     
-    // Adicionar com separador
-    textarea.value = currentText + '\n\n' + newText;
+    if (!currentText.trim()) {
+        textarea.value = newText;
+    } else {
+        textarea.value = currentText + '\n\n--- NOVO RELATÓRIO ---\n\n' + newText;
+    }
     
     // Disparar eventos
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
     
+    // Rolar para o final
+    textarea.scrollTop = textarea.scrollHeight;
+    
     return true;
 }
 
-// ===== UTILITÁRIOS =====
-function getSessionId() {
-    let sessionId = localStorage.getItem('rdoSessionId');
-    if (!sessionId) {
-        sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('rdoSessionId', sessionId);
-    }
-    return sessionId;
-}
-
-function addStatusButton(system) {
-    if (document.getElementById(`sync-status-${system}`)) return;
-    
-    const statusDiv = document.createElement('div');
-    statusDiv.id = `sync-status-${system}`;
-    statusDiv.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        background: white;
-        border: 2px solid #005c8f;
-        border-radius: 30px;
-        padding: 8px 16px;
-        font-size: 12px;
-        font-weight: bold;
-        z-index: 9999;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        transition: all 0.3s;
-    `;
-    statusDiv.innerHTML = `
-        <span id="sync-indicator-${system}" style="width: 12px; height: 12px; border-radius: 50%; background: #ff9800; display: inline-block;"></span>
-        <span id="sync-text-${system}">Sincronizando...</span>
-        <span style="margin-left: 5px; font-size: 16px;">⚡</span>
-    `;
-    
-    statusDiv.onclick = () => {
-        syncEnabled = !syncEnabled;
-        updateStatus(system, syncEnabled ? 'info' : 'disabled', syncEnabled ? 'Ativo' : 'Pausado');
-    };
-    
-    document.body.appendChild(statusDiv);
-}
-
-function addForceButton(textarea) {
+function addManualFetchButton(textarea) {
     const btn = document.createElement('button');
-    btn.textContent = '🔄 Forçar Sincronização';
+    btn.textContent = '🔄 BUSCAR RELATÓRIOS';
     btn.style.cssText = `
         position: fixed;
-        bottom: 70px;
-        right: 10px;
+        bottom: 20px;
+        left: 20px;
         background: #005c8f;
         color: white;
         border: none;
-        border-radius: 30px;
-        padding: 10px 20px;
-        font-size: 12px;
+        border-radius: 50px;
+        padding: 15px 25px;
+        font-size: 16px;
         font-weight: bold;
-        z-index: 9999;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 10000;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         cursor: pointer;
+        animation: pulse 2s infinite;
     `;
     
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background: #0077b3; }
+            100% { transform: scale(1); }
+        }
+    `;
+    document.head.appendChild(style);
+    
     btn.onclick = async () => {
-        btn.textContent = '⏳ Buscando...';
+        btn.textContent = '⏳ BUSCANDO...';
         btn.disabled = true;
         
         try {
-            // Buscar últimos 5 documentos
-            const snapshot = await db.collection(RDO_COLLECTION)
+            const db = firebase.firestore();
+            const snapshot = await db.collection(CONFIG.COLECTION)
                 .orderBy('timestamp', 'desc')
-                .limit(5)
+                .limit(20)
                 .get();
             
             let count = 0;
-            snapshot.docs.forEach(doc => {
+            snapshot.forEach(doc => {
                 const data = doc.data();
                 if (appendToTextarea(textarea, data.text)) {
                     count++;
                 }
             });
             
-            btn.textContent = `✅ ${count} novos adicionados`;
+            btn.textContent = `✅ ${count} ENCONTRADOS`;
             setTimeout(() => {
-                btn.textContent = '🔄 Forçar Sincronização';
+                btn.textContent = '🔄 BUSCAR RELATÓRIOS';
                 btn.disabled = false;
-            }, 2000);
+            }, 3000);
             
         } catch (error) {
-            console.error(error);
-            btn.textContent = '❌ Erro';
+            btn.textContent = '❌ ERRO';
             setTimeout(() => {
-                btn.textContent = '🔄 Forçar Sincronização';
+                btn.textContent = '🔄 BUSCAR RELATÓRIOS';
                 btn.disabled = false;
-            }, 2000);
+            }, 3000);
         }
     };
     
     document.body.appendChild(btn);
 }
 
-function updateStatus(system, type, message) {
-    const indicator = document.getElementById(`sync-indicator-${system}`);
-    const text = document.getElementById(`sync-text-${system}`);
-    
-    if (!indicator || !text) return;
-    
-    const colors = {
-        success: '#4caf50',
-        error: '#f44336',
-        info: '#ff9800',
-        disabled: '#9e9e9e'
-    };
-    
-    indicator.style.background = colors[type] || colors.info;
-    text.textContent = message;
-}
-
-function showToast(message) {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 130px;
-        right: 10px;
-        background: #333;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 30px;
-        font-size: 12px;
-        z-index: 9999;
-        animation: fadeInOut 3s ease;
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes fadeInOut {
-            0% { opacity: 0; transform: translateY(20px); }
-            10% { opacity: 1; transform: translateY(0); }
-            90% { opacity: 1; transform: translateY(0); }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
-
 // ===== INICIALIZAÇÃO =====
 function init() {
-    console.log('🚀 Iniciando Bridge de Sincronização Melhorada...');
+    console.clear();
+    console.log('%c🔵 SISTEMA DE SINCRONIZAÇÃO ULTRA-ESTÁVEL', 'color: #005c8f; font-size: 16px; font-weight: bold');
     
+    // Adicionar painel de log
+    addLogPanel();
+    
+    // Detectar sistema
     if (document.getElementById('preview')) {
-        console.log('📱 Sistema detectado: RDO-Correias');
-        injectIntoRDO();
+        logMessage('📱 SISTEMA: RDO-Correias');
+        initRDO();
     } else if (document.getElementById('txtOperadores')) {
-        console.log('📊 Sistema detectado: Comparador-V70');
-        injectIntoComparador();
+        logMessage('📊 SISTEMA: Comparador-V70');
+        initComparador();
     } else {
-        console.log('⏳ Aguardando detecção do sistema...');
-        setTimeout(init, 1000);
+        logMessage('❓ Sistema não identificado, aguardando...');
+        setTimeout(init, 2000);
     }
 }
 
-// Aguardar Firebase
-if (typeof firebase !== 'undefined') {
-    init();
+// Iniciar quando a página carregar
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
 } else {
-    const script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
-    script.onload = () => {
-        const firestore = document.createElement('script');
-        firestore.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js';
-        firestore.onload = init;
-        document.head.appendChild(firestore);
-    };
-    document.head.appendChild(script);
+    init();
 }
