@@ -1,17 +1,17 @@
 // ============================================
-// BRIDGE DE SINCRONIZAÇÃO ENTRE OS DOIS SISTEMAS
-// NÃO ALTERA OS FRONTS ORIGINAIS
+// BRIDGE DE SINCRONIZAÇÃO MELHORADA
 // ============================================
 
 // Estado da sincronização
 let lastSyncTime = null;
 let syncEnabled = true;
+let lastSentText = ''; // Para evitar duplicatas
 
 // ===== FUNÇÕES PARA O RDO-CORREIAS =====
 function injectIntoRDO() {
     console.log('🔄 Bridge: Injetando listener no RDO-Correias...');
     
-    // Observar mudanças na preview (onde o texto do relatório é gerado)
+    // Observar mudanças na preview
     const previewElement = document.getElementById('preview');
     if (!previewElement) {
         console.log('⏳ Aguardando preview do RDO-Correias...');
@@ -21,50 +21,81 @@ function injectIntoRDO() {
     
     console.log('✅ Preview encontrado! Monitorando...');
     
-    // Criar observer para detectar mudanças no preview
-    const observer = new MutationObserver(async function(mutations) {
+    // Função para capturar e enviar o texto
+    const captureAndSend = async () => {
         if (!syncEnabled) return;
         
-        // Debounce para não enviar muitas vezes
+        const rdoText = previewElement.textContent || previewElement.innerText;
+        
+        // Só enviar se tiver conteúdo significativo e diferente do último
+        if (rdoText && rdoText.length > 50 && rdoText !== lastSentText) {
+            console.log('📤 Enviando novo relatório...');
+            await sendToFirebase(rdoText);
+            lastSentText = rdoText;
+        }
+    };
+    
+    // 1. Observer para mudanças no DOM
+    const observer = new MutationObserver(() => {
         clearTimeout(window._rdoDebounce);
-        window._rdoDebounce = setTimeout(async () => {
-            const rdoText = previewElement.textContent || previewElement.innerText;
-            if (rdoText && rdoText.length > 50) { // Só enviar se tiver conteúdo significativo
-                await sendToFirebase(rdoText);
-            }
-        }, 1500);
+        window._rdoDebounce = setTimeout(captureAndSend, 1000);
     });
     
-    // Observar mudanças no texto
     observer.observe(previewElement, {
         childList: true,
         characterData: true,
         subtree: true,
-        characterDataOldValue: true
+        attributes: true
     });
     
-    // Também observar cliques em botões que geram relatório
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button');
-        if (btn && (btn.id === 'sendWA' || btn.id === 'copyTxt' || btn.id === 'pngBtn')) {
-            setTimeout(async () => {
-                const rdoText = previewElement.textContent || previewElement.innerText;
-                if (rdoText && rdoText.length > 50) {
-                    await sendToFirebase(rdoText);
-                }
-            }, 500);
+    // 2. Observer também no elemento pai (por segurança)
+    if (previewElement.parentElement) {
+        observer.observe(previewElement.parentElement, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    // 3. Capturar a cada 30 segundos (backup)
+    setInterval(captureAndSend, 30000);
+    
+    // 4. Botões que disparam relatório
+    const buttons = ['sendWA', 'copyTxt', 'pngBtn'];
+    buttons.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                setTimeout(captureAndSend, 500);
+            });
         }
     });
     
-    // Adicionar botão de status no RDO-Correias (sem quebrar layout)
+    // 5. Inputs do checklist (mudanças nos radios)
+    document.addEventListener('change', (e) => {
+        if (e.target.matches('input[type="radio"]')) {
+            setTimeout(captureAndSend, 500);
+        }
+    });
+    
+    // 6. Botão de adicionar equipamento
+    const addBtn = document.getElementById('addEquip');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            setTimeout(captureAndSend, 1000);
+        });
+    }
+    
+    // Adicionar botão de status
     addStatusButton('rdo');
+    
+    // Enviar imediatamente se já houver conteúdo
+    setTimeout(captureAndSend, 2000);
 }
 
 // ===== FUNÇÕES PARA O COMPARADOR-V70 =====
 function injectIntoComparador() {
     console.log('🔄 Bridge: Injetando listener no Comparador-V70...');
     
-    // Aguardar a textarea dos operadores
     const checkTextarea = () => {
         const textarea = document.getElementById('txtOperadores');
         if (!textarea) {
@@ -75,10 +106,13 @@ function injectIntoComparador() {
         
         console.log('✅ Textarea encontrada! Monitorando Firebase...');
         
-        // Inscrever para receber atualizações em tempo real
+        // Inscrever para receber atualizações
         subscribeToFirebase(textarea);
         
-        // Adicionar botão de status no Comparador
+        // Adicionar botão de força bruta
+        addForceButton(textarea);
+        
+        // Adicionar botão de status
         addStatusButton('comparador');
     };
     
@@ -93,7 +127,9 @@ async function sendToFirebase(rdoText) {
         const timestamp = firebase.firestore.FieldValue.serverTimestamp();
         const sessionId = getSessionId();
         
-        // Criar documento no Firestore
+        // Salvar no localStorage para saber que foi enviado
+        localStorage.setItem('rdoLastSync', new Date().toISOString());
+        
         const docRef = await db.collection(RDO_COLLECTION).add({
             text: rdoText,
             timestamp: timestamp,
@@ -105,8 +141,8 @@ async function sendToFirebase(rdoText) {
         console.log('✅ Dados enviados para Firebase:', docRef.id);
         updateStatus('rdo', 'success', '✓ Sincronizado');
         
-        // Limpar documentos antigos (manter só últimas 50)
-        cleanupOldDocuments();
+        // Feedback visual
+        showToast('Relatório sincronizado!');
         
     } catch (error) {
         console.error('❌ Erro ao enviar para Firebase:', error);
@@ -117,41 +153,40 @@ async function sendToFirebase(rdoText) {
 function subscribeToFirebase(textarea) {
     console.log('📡 Inscrevendo para atualizações do Firebase...');
     
-    // Buscar última sincronização
     const lastSync = localStorage.getItem('lastComparadorSync');
     let lastSyncTime = lastSync ? new Date(lastSync) : new Date(0);
     
-    // Query para últimos documentos
     const query = db.collection(RDO_COLLECTION)
         .orderBy('timestamp', 'desc')
-        .limit(10);
+        .limit(20);
     
-    // Listener em tempo real
     query.onSnapshot((snapshot) => {
         snapshot.docChanges().forEach(async (change) => {
             if (change.type === 'added') {
                 const data = change.doc.data();
                 const docTime = data.timestamp?.toDate() || new Date(data.syncedAt);
                 
-                // Só processar se for mais recente que última sincronização
                 if (docTime > lastSyncTime) {
-                    console.log('📥 Novo dado recebido do Firebase:', change.doc.id);
+                    console.log('📥 Novo dado recebido:', change.doc.id);
                     
                     // Adicionar ao textarea
-                    appendToTextarea(textarea, data.text);
+                    const added = appendToTextarea(textarea, data.text);
                     
-                    // Atualizar última sincronização
-                    lastSyncTime = new Date();
-                    localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
-                    
-                    updateStatus('comparador', 'success', '✓ Atualizado');
-                    
-                    // Opcional: Processar automaticamente
-                    setTimeout(() => {
-                        if (typeof processOperadoresCompleto === 'function') {
-                            processOperadoresCompleto();
-                        }
-                    }, 500);
+                    if (added) {
+                        // Atualizar última sincronização
+                        lastSyncTime = new Date();
+                        localStorage.setItem('lastComparadorSync', lastSyncTime.toISOString());
+                        
+                        updateStatus('comparador', 'success', '✓ Atualizado');
+                        showToast('Novo relatório recebido!');
+                        
+                        // Auto-processar após 2 segundos
+                        setTimeout(() => {
+                            if (typeof processOperadoresCompleto === 'function') {
+                                processOperadoresCompleto();
+                            }
+                        }, 2000);
+                    }
                 }
             }
         });
@@ -162,33 +197,32 @@ function subscribeToFirebase(textarea) {
 }
 
 function appendToTextarea(textarea, newText) {
-    if (!textarea) return;
+    if (!textarea) return false;
     
-    // Pegar texto atual
     let currentText = textarea.value;
     
-    // Se estiver vazio, só adicionar o novo
     if (!currentText.trim()) {
         textarea.value = newText;
-        return;
+        return true;
     }
     
-    // Verificar se já existe conteúdo similar (evitar duplicatas)
+    // Verificar duplicatas (mais rigoroso)
     const normalizedCurrent = currentText.replace(/\s+/g, ' ').trim();
     const normalizedNew = newText.replace(/\s+/g, ' ').trim();
     
-    // Se for muito similar (90%), não adicionar
-    if (similarity(normalizedCurrent, normalizedNew) > 0.9) {
+    if (normalizedCurrent.includes(normalizedNew.substring(0, 100))) {
         console.log('📝 Conteúdo similar ignorado');
-        return;
+        return false;
     }
     
     // Adicionar com separador
     textarea.value = currentText + '\n\n' + newText;
     
-    // Disparar evento de change para o sistema processar
+    // Disparar eventos
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
     textarea.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    return true;
 }
 
 // ===== UTILITÁRIOS =====
@@ -201,57 +235,7 @@ function getSessionId() {
     return sessionId;
 }
 
-async function cleanupOldDocuments() {
-    try {
-        // Manter apenas últimas 50 entradas
-        const snapshot = await db.collection(RDO_COLLECTION)
-            .orderBy('timestamp', 'desc')
-            .offset(50)
-            .get();
-        
-        const batch = db.batch();
-        snapshot.docs.forEach(doc => batch.delete(doc.ref));
-        
-        if (snapshot.size > 0) {
-            await batch.commit();
-            console.log(`🧹 Limpeza: ${snapshot.size} documentos antigos removidos`);
-        }
-    } catch (error) {
-        console.error('Erro na limpeza:', error);
-    }
-}
-
-function similarity(s1, s2) {
-    if (!s1 || !s2) return 0;
-    const longer = s1.length > s2.length ? s1 : s2;
-    const shorter = s1.length > s2.length ? s2 : s1;
-    if (longer.length === 0) return 1.0;
-    return (longer.length - editDistance(longer, shorter)) / longer.length;
-}
-
-function editDistance(s1, s2) {
-    s1 = s1.toLowerCase();
-    s2 = s2.toLowerCase();
-    const costs = [];
-    for (let i = 0; i <= s1.length; i++) {
-        let lastValue = i;
-        for (let j = 0; j <= s2.length; j++) {
-            if (i === 0) costs[j] = j;
-            else if (j > 0) {
-                let newValue = costs[j - 1];
-                if (s1.charAt(i - 1) !== s2.charAt(j - 1))
-                    newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-                costs[j - 1] = lastValue;
-                lastValue = newValue;
-            }
-        }
-        if (i > 0) costs[s2.length] = lastValue;
-    }
-    return costs[s2.length];
-}
-
 function addStatusButton(system) {
-    // Verificar se já existe
     if (document.getElementById(`sync-status-${system}`)) return;
     
     const statusDiv = document.createElement('div');
@@ -288,6 +272,63 @@ function addStatusButton(system) {
     document.body.appendChild(statusDiv);
 }
 
+function addForceButton(textarea) {
+    const btn = document.createElement('button');
+    btn.textContent = '🔄 Forçar Sincronização';
+    btn.style.cssText = `
+        position: fixed;
+        bottom: 70px;
+        right: 10px;
+        background: #005c8f;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        padding: 10px 20px;
+        font-size: 12px;
+        font-weight: bold;
+        z-index: 9999;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        cursor: pointer;
+    `;
+    
+    btn.onclick = async () => {
+        btn.textContent = '⏳ Buscando...';
+        btn.disabled = true;
+        
+        try {
+            // Buscar últimos 5 documentos
+            const snapshot = await db.collection(RDO_COLLECTION)
+                .orderBy('timestamp', 'desc')
+                .limit(5)
+                .get();
+            
+            let count = 0;
+            snapshot.docs.forEach(doc => {
+                const data = doc.data();
+                if (appendToTextarea(textarea, data.text)) {
+                    count++;
+                }
+            });
+            
+            btn.textContent = `✅ ${count} novos adicionados`;
+            setTimeout(() => {
+                btn.textContent = '🔄 Forçar Sincronização';
+                btn.disabled = false;
+            }, 2000);
+            
+        } catch (error) {
+            console.error(error);
+            btn.textContent = '❌ Erro';
+            setTimeout(() => {
+                btn.textContent = '🔄 Forçar Sincronização';
+                btn.disabled = false;
+            }, 2000);
+        }
+    };
+    
+    document.body.appendChild(btn);
+}
+
 function updateStatus(system, type, message) {
     const indicator = document.getElementById(`sync-indicator-${system}`);
     const text = document.getElementById(`sync-text-${system}`);
@@ -305,11 +346,41 @@ function updateStatus(system, type, message) {
     text.textContent = message;
 }
 
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 130px;
+        right: 10px;
+        background: #333;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 30px;
+        font-size: 12px;
+        z-index: 9999;
+        animation: fadeInOut 3s ease;
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            90% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 // ===== INICIALIZAÇÃO =====
 function init() {
-    console.log('🚀 Iniciando Bridge de Sincronização...');
+    console.log('🚀 Iniciando Bridge de Sincronização Melhorada...');
     
-    // Detectar em qual sistema estamos
     if (document.getElementById('preview')) {
         console.log('📱 Sistema detectado: RDO-Correias');
         injectIntoRDO();
@@ -322,11 +393,10 @@ function init() {
     }
 }
 
-// Aguardar Firebase carregar
+// Aguardar Firebase
 if (typeof firebase !== 'undefined') {
     init();
 } else {
-    // Carregar Firebase se não existir
     const script = document.createElement('script');
     script.src = 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js';
     script.onload = () => {
