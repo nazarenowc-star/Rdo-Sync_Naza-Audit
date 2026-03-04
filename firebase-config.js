@@ -1,9 +1,10 @@
 // ============================================
-// FIREBASE CONFIG - VERSÃO CORRETA (Compatível)
+// FIREBASE CONFIG — CORRIGIDO (compat)
+// - Remove "merge" inválido em db.settings (pode quebrar inicialização)
 // ============================================
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
+  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5BDg_bOfG8kHJQ",
   authDomain: "rdo-sync.firebaseapp.com",
   projectId: "rdo-sync",
   storageBucket: "rdo-sync.firebasestorage.app",
@@ -11,17 +12,25 @@ const firebaseConfig = {
   appId: "1:551344630048:web:87e485e712473a46234f45"
 };
 
-// Inicializar Firebase (versão compatível)
-firebase.initializeApp(firebaseConfig);
+// Evitar dupla inicialização
+if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length === 0) {
+  firebase.initializeApp(firebaseConfig);
+} else if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+  // ok
+} else {
+  console.warn('Firebase SDK não carregou ainda. Carregue firebase-app-compat.js antes deste arquivo.');
+}
 
-// Inicializar Firestore
 const db = firebase.firestore();
 
-// Configurar Firestore
-db.settings({
-    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-    merge: true
-});
+// settings: apenas chaves suportadas
+try {
+  db.settings({
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+    // ignoreUndefinedProperties: true, // opcional (se precisar)
+  });
+} catch (e) {
+  console.warn('Firestore settings warning:', e);
+}
 
-console.log('✅ Firebase inicializado com sucesso!');
-console.log('📁 Projeto:', firebaseConfig.projectId);
+console.log('✅ Firebase inicializado:', firebaseConfig.projectId);
