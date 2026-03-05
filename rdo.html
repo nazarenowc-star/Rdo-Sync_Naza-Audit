@@ -87,15 +87,9 @@ summary{cursor:pointer;font-weight:800}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  // Firebase config (projeto rdo-sync)
-  const firebaseConfig = {
-  "apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
-  "authDomain": "rdo-sync.firebaseapp.com",
-  "projectId": "rdo-sync",
-  "storageBucket": "rdo-sync.firebasestorage.app",
-  "messagingSenderId": "551344630048",
-  "appId": "1:551344630048:web:87e485e712473a46234f45"
-};
+  const firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
+  try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) {}
+  const __db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
 </script>
 </head>
 <body>
@@ -153,51 +147,6 @@ summary{cursor:pointer;font-weight:800}
 </div>
 
 <script>
-
-
-  // ==== FIREBASE SYNC (RDO -> Firestore realtime) ====
-  let __fbApp = null, __fbDb = null;
-  function __fbInit(){
-    try{
-      if(!window.firebase || !firebase?.apps) return false;
-      if(firebase.apps.length===0) __fbApp = firebase.initializeApp(firebaseConfig);
-      else __fbApp = firebase.app();
-      __fbDb = firebase.firestore();
-      return true;
-    }catch(e){
-      console.warn("Firebase init falhou:", e);
-      return false;
-    }
-  }
-
-  let __liveTimer = null;
-  function __syncLiveDebounced(text){
-    if(!text || !text.trim()) return;
-    if(!__fbDb && !__fbInit()) return;
-    clearTimeout(__liveTimer);
-    __liveTimer = setTimeout(async ()=>{
-      try{
-        await __fbDb.collection("rdo_operadores").doc("live").set({
-          text: text,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-          source: "rdo_operadores",
-        }, {merge:true});
-      }catch(e){ console.warn("Falha ao gravar live:", e); }
-    }, 450);
-  }
-
-  async function __syncHistory(text){
-    if(!text || !text.trim()) return;
-    if(!__fbDb && !__fbInit()) return;
-    try{
-      await __fbDb.collection("rdo_operadores").add({
-        text: text,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        source: "rdo_operadores",
-      });
-    }catch(e){ console.warn("Falha ao gravar histórico:", e); }
-  }
-  window.__FIRE_SYNC_RDO__ = true;
 
 // ===== Modo móvel: desativar sticky para facilitar rolagem =====
 (function(){
@@ -271,7 +220,6 @@ $('#markAllOk').onclick = ()=>{
 // WhatsApp
 $('#sendWA').onclick = ()=>{
   const text = buildTextReport();
-  try{ __syncLiveDebounced(text); __syncHistory(text); }catch(e){}
   const url1 = 'whatsapp://send?text='+encodeURIComponent(text);
   const url2 = 'https://wa.me/?text='+encodeURIComponent(text);
   location.href=url1; setTimeout(()=>location.href=url2, 600);
@@ -522,9 +470,7 @@ function buildTextReport(){
   const itens = EQUIPS.map(buildOneText).join('\n\n');
   return ctx + '\n\n' + itens + '\n\n' + '📎 Fotos: vistas no app; anexe as principais no envio.';
 }
-function updatePreview(){ $('#preview').textContent = buildTextReport(); 
-  try{ __syncLiveDebounced(buildTextReport()); }catch(e){}
-}
+function updatePreview(){ $('#preview').textContent = buildTextReport(); }
 updatePreview();
 
 // ===== Relatório Visual (PNG) =====
@@ -599,5 +545,78 @@ async function domtoImageSafe(node){
 }
 
 </script>
+
+<script>
+// ==== FIREBASE SYNC (RDO -> Firestore realtime) ====
+let __liveTimer = null;
+function __syncLiveDebounced(text){
+  if(!text || !text.trim()) return;
+  if(!window.__db) return;
+  clearTimeout(__liveTimer);
+  __liveTimer = setTimeout(async ()=>{
+    try{
+      await __db.collection("rdo_operadores").doc("live").set({
+        text: text,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source: "rdo"
+      }, {merge:true});
+    }catch(e){ console.warn("Falha ao gravar live:", e); }
+  }, 350);
+}
+
+async function __syncHistory(text){
+  if(!text || !text.trim()) return;
+  if(!window.__db) return;
+  try{
+    await __db.collection("rdo_operadores").add({
+      text: text,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      source: "rdo_history"
+    });
+  }catch(e){ console.warn("Falha ao gravar histórico:", e); }
+}
+
+// Observa a prévia (#preview). Sempre que ela mudar, grava no Firestore.
+let __previewObserver = null;
+function __startPreviewObserver(){
+  try{
+    const el = document.getElementById("preview");
+    if(!el) return;
+    if(__previewObserver) return;
+    __previewObserver = new MutationObserver(()=>{
+      const text = (el.innerText || el.textContent || "").trim();
+      if(text) __syncLiveDebounced(text);
+    });
+    __previewObserver.observe(el, {subtree:true, childList:true, characterData:true});
+    const initial = (el.innerText || el.textContent || "").trim();
+    if(initial) __syncLiveDebounced(initial);
+  }catch(e){ console.warn("Observer preview falhou:", e); }
+}
+window.addEventListener("load", ()=> setTimeout(__startPreviewObserver, 250));
+window.__FIRE_SYNC_RDO__ = true;
+</script>
+
+
+<script>
+// Hook extra: ao clicar WhatsApp, também salva histórico no Firestore (mesmo que WA esteja bloqueado no PC).
+(function(){
+  function getPreviewText(){
+    const el = document.getElementById("preview");
+    return (el?.innerText || el?.textContent || "").trim();
+  }
+  window.addEventListener("load", ()=>{
+    const btn = document.getElementById("sendWA");
+    if(!btn) return;
+    btn.addEventListener("click", ()=>{
+      try{
+        const t = getPreviewText();
+        if(t){ __syncLiveDebounced(t); __syncHistory(t); }
+      }catch(e){}
+    }, true);
+  });
+  window.__sendWA_hook__ = true;
+})();
+</script>
+
 </body>
 </html>
