@@ -87,9 +87,9 @@ summary{cursor:pointer;font-weight:800}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  const firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
-  try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) {}
-  const __db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
+  window.firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
+  try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) {}
+  window.__db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
 </script>
 </head>
 <body>
@@ -545,78 +545,34 @@ async function domtoImageSafe(node){
 }
 
 </script>
-
-<script>
-// ==== FIREBASE SYNC (RDO -> Firestore realtime) ====
-let __liveTimer = null;
-function __syncLiveDebounced(text){
-  if(!text || !text.trim()) return;
-  if(!window.__db) return;
-  clearTimeout(__liveTimer);
-  __liveTimer = setTimeout(async ()=>{
-    try{
-      await __db.collection("rdo_operadores").doc("live").set({
-        text: text,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        source: "rdo"
-      }, {merge:true});
-    }catch(e){ console.warn("Falha ao gravar live:", e); }
-  }, 350);
-}
-
-async function __syncHistory(text){
-  if(!text || !text.trim()) return;
-  if(!window.__db) return;
-  try{
-    await __db.collection("rdo_operadores").add({
-      text: text,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      source: "rdo_history"
-    });
-  }catch(e){ console.warn("Falha ao gravar histórico:", e); }
-}
-
-// Observa a prévia (#preview). Sempre que ela mudar, grava no Firestore.
-let __previewObserver = null;
-function __startPreviewObserver(){
-  try{
-    const el = document.getElementById("preview");
-    if(!el) return;
-    if(__previewObserver) return;
-    __previewObserver = new MutationObserver(()=>{
-      const text = (el.innerText || el.textContent || "").trim();
-      if(text) __syncLiveDebounced(text);
-    });
-    __previewObserver.observe(el, {subtree:true, childList:true, characterData:true});
-    const initial = (el.innerText || el.textContent || "").trim();
-    if(initial) __syncLiveDebounced(initial);
-  }catch(e){ console.warn("Observer preview falhou:", e); }
-}
-window.addEventListener("load", ()=> setTimeout(__startPreviewObserver, 250));
-window.__FIRE_SYNC_RDO__ = true;
-</script>
-
-
-<script>
-// Hook extra: ao clicar WhatsApp, também salva histórico no Firestore (mesmo que WA esteja bloqueado no PC).
-(function(){
-  function getPreviewText(){
-    const el = document.getElementById("preview");
-    return (el?.innerText || el?.textContent || "").trim();
-  }
-  window.addEventListener("load", ()=>{
-    const btn = document.getElementById("sendWA");
-    if(!btn) return;
-    btn.addEventListener("click", ()=>{
-      try{
-        const t = getPreviewText();
-        if(t){ __syncLiveDebounced(t); __syncHistory(t); }
-      }catch(e){}
-    }, true);
-  });
-  window.__sendWA_hook__ = true;
-})();
-</script>
-
 </body>
 </html>
+
+<script>
+let __liveTimer=null;
+function __syncLiveDebounced(text){
+  if(!text||!text.trim()||!window.__db) return;
+  clearTimeout(__liveTimer);
+  __liveTimer=setTimeout(()=>{
+    window.__db.collection("rdo_operadores").doc("live").set({
+      text:text,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      source:"rdo"
+    },{merge:true}).catch(e=>console.warn("Falha ao gravar live:",e));
+  },350);
+}
+let __previewObserver=null;
+function __startPreviewObserver(){
+  const el=document.getElementById("preview");
+  if(!el||__previewObserver) return;
+  __previewObserver=new MutationObserver(()=>{
+    const t=(el.innerText||el.textContent||"").trim();
+    if(t) __syncLiveDebounced(t);
+  });
+  __previewObserver.observe(el,{subtree:true,childList:true,characterData:true});
+  const initial=(el.innerText||el.textContent||"").trim();
+  if(initial) __syncLiveDebounced(initial);
+}
+window.addEventListener("load",()=>setTimeout(__startPreviewObserver,250));
+window.__FIRE_SYNC_RDO__=true;
+</script>
