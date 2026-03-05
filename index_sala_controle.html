@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sala de Controle — RDO + Comparador</title>
+<style>
+:root{
+  --sam-blue:#005c8f; --sam-green:#3a9d5d; --bg:#f3f6fb; --border:#d5dde7; --card:#ffffff;
+  --shadow:0 10px 28px rgba(2,8,23,.08);
+}
+*{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+body{margin:0;background:var(--bg);color:#0f172a;height:100vh;overflow:hidden}
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:14px 18px;background:#fff;border-bottom:1px solid var(--border);box-shadow:var(--shadow);
+}
+.brand{display:flex;align-items:center;gap:12px}
+.mark{
+  width:44px;height:44px;border-radius:14px;
+  background:linear-gradient(135deg,var(--sam-blue),var(--sam-green));
+  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;
+}
+h1{margin:0;font-size:16px;color:var(--sam-blue)}
+.sub{font-size:12px;color:#64748b}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{
+  border:none;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:800;
+  background:#eef2ff;color:#1f2937;border:1px solid var(--border);
+}
+.btn.primary{background:var(--sam-blue);border-color:var(--sam-blue);color:#fff}
+.btn:active{transform:translateY(1px)}
+main{height:calc(100vh - 78px);padding:12px}
+.grid{height:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.phead{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.phead .title{font-weight:900;color:#0f172a;font-size:13px}
+.phead .hint{font-size:11px;color:#64748b}
+iframe{border:0;width:100%;height:100%;background:#fff}
+@media (max-width: 1100px){
+  body{overflow:auto}
+  main{height:auto}
+  .grid{grid-template-columns:1fr; height:auto}
+  .panel{height:88vh}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark">SM</div>
+    <div>
+      <h1>Sala de Controle — RDO Operadores + Comparador V70</h1>
+      <div class="sub">Digitação no RDO ➜ Firestore (rdo_operadores/live) ➜ Comparador atualiza e processa automaticamente</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="showBoth()">🧩 Ambos</button>
+    <button class="btn" onclick="showRDO()">🧭 Só RDO</button>
+    <button class="btn" onclick="showComp()">📊 Só Comparador</button>
+    <button class="btn primary" onclick="reloadAll()">🔄 Recarregar</button>
+  </div>
+</header>
+
+<main>
+  <div class="grid" id="grid">
+    <section class="panel" id="pRDO">
+      <div class="phead">
+        <div>
+          <div class="title">🧭 RDO Operadores</div>
+          <div class="hint">Gera prévia + envia WhatsApp + grava realtime no Firebase</div>
+        </div>
+      </div>
+      <iframe id="frameRDO" src="rdo.html"></iframe>
+    </section>
+
+    <section class="panel" id="pComp">
+      <div class="phead">
+        <div>
+          <div class="title">📊 Comparador V70</div>
+          <div class="hint">Recebe do Firebase e aciona “Processar” automaticamente</div>
+        </div>
+      </div>
+      <iframe id="frameComp" src="comparador.html"></iframe>
+    </section>
+  </div>
+</main>
+
+<script>
+function showBoth(){
+  document.getElementById('pRDO').style.display='';
+  document.getElementById('pComp').style.display='';
+  document.getElementById('grid').style.gridTemplateColumns='1fr 1fr';
+}
+function showRDO(){
+  document.getElementById('pRDO').style.display='';
+  document.getElementById('pComp').style.display='none';
+  document.getElementById('grid').style.gridTemplateColumns='1fr';
+}
+function showComp(){
+  document.getElementById('pComp').style.display='';
+  document.getElementById('pRDO').style.display='none';
+  document.getElementById('grid').style.gridTemplateColumns='1fr';
+}
+function reloadAll(){
+  document.getElementById('frameRDO').contentWindow.location.reload();
+  document.getElementById('frameComp').contentWindow.location.reload();
+}
+</script>
+</body>
+</html>
