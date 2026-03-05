@@ -956,9 +956,9 @@ td.description-cell {
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  const firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
-  try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) {}
-  const __db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
+  window.firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
+  try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) {}
+  window.__db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
 </script>
 </head>
 <body>
@@ -6342,44 +6342,32 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("🎯 Suporte a formato estruturado (com ícones 🎯 e 📝)");
 });
 </script>
-
+</body>
+</html>
 <script>
-// ==== FIREBASE SYNC (Firestore realtime -> Comparador V70) ====
 function __setSyncStatus(msg){
-  const el = document.getElementById("statusOperadores") || document.getElementById("statusComparison") || null;
-  if(el) el.textContent = msg;
+  const el=document.getElementById("statusOperadores")||document.getElementById("statusComparison");
+  if(el) el.textContent=msg;
 }
 function __applyTextAndProcess(text){
-  const ta = document.getElementById("txtOperadores");
+  const ta=document.getElementById("txtOperadores");
   if(!ta) return;
-  if(ta.value !== text){
-    ta.value = text;
-    setTimeout(()=>{
-      try{ if(typeof processOperadoresCompleto === "function") processOperadoresCompleto(); }catch(e){}
-    }, 30);
+  if(ta.value!==text){
+    ta.value=text;
+    setTimeout(()=>{ try{ if(typeof processOperadoresCompleto==="function") processOperadoresCompleto(); }catch(e){} },30);
   }
 }
 function __startRealtime(){
-  if(!window.__db){
-    __setSyncStatus("⚠️ Firebase não inicializou (verifique config/regras).");
-    return;
-  }
+  if(!window.__db){ __setSyncStatus("⚠️ Firebase não inicializou (verifique config/regras)."); return; }
   __setSyncStatus("🔄 Realtime: aguardando rdo_operadores/live…");
   window.__db.collection("rdo_operadores").doc("live").onSnapshot((doc)=>{
     if(!doc.exists) return;
-    const data = doc.data() || {};
-    const text = (data.text || data.texto || "").toString().trim();
+    const text=((doc.data()||{}).text||"").toString().trim();
     if(!text) return;
     __setSyncStatus("✅ Realtime: dados recebidos. Processando…");
     __applyTextAndProcess(text);
-  }, (err)=>{
-    console.warn(err);
-    __setSyncStatus("❌ Realtime: erro ao ler Firestore (permission-denied?).");
-  });
+  },(err)=>{ console.warn(err); __setSyncStatus("❌ Realtime: erro ao ler Firestore (permission-denied?)."); });
 }
-window.addEventListener("load", ()=> setTimeout(__startRealtime, 200));
-window.__FIRE_SYNC_COMP__ = true;
+window.addEventListener("load",()=>setTimeout(__startRealtime,200));
+window.__FIRE_SYNC_COMP__=true;
 </script>
-
-</body>
-</html>
