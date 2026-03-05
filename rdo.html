@@ -343,7 +343,10 @@ function wireCards(){
     const id = card.getAttribute('data-id');
     const e = EQUIPS.find(x=>x.id===id);
 
-    // radios
+    
+    if(!e){ console.warn('Equip não encontrado para card', id); return; }
+    if(!Array.isArray(e.probsSel)) e.probsSel = [];
+// radios
     [...GROUPS.criticos,...GROUPS.preventivos,...GROUPS.melhoria].forEach(k=>{
       card.querySelectorAll(`input[name="${id}_${k}"]`).forEach(r=>{
         r.onchange = ()=>{ e.status[k]=r.value; updatePreview(); };
