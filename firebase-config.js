@@ -1,8 +1,8 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
-  authDomain: "rdo-sync.firebaseapp.com",
-  projectId: "rdo-sync",
-  storageBucket: "rdo-sync.firebasestorage.app",
-  messagingSenderId: "551344630048",
-  appId: "1:551344630048:web:87e485e712473a46234f45"
+  apiKey: "AIzaSyBqF7_FmiSVj_pw81TxVIf3_gjgwJnWaOc",
+  authDomain: "rdo-sync-b0e74.firebaseapp.com",
+  projectId: "rdo-sync-b0e74",
+  storageBucket: "rdo-sync-b0e74.firebasestorage.app",
+  messagingSenderId: "679708769339",
+  appId: "1:679708769339:web:f9aabaaeb289f8c6b9b01e"
 };
