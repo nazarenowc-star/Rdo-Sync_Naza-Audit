@@ -1479,6 +1479,213 @@ let eventsOperadoresAll = [];
 let eventsMESAll = [];
 let charts = {};
 let allEquipments = [];
+const MOTIVOS_MES = [
+  "Anti-rasgo (indicação falsa)",
+  "Atuação indevida",
+  "Ausente",
+  "Baixa pressão de óleo",
+  "Borda danificada",
+  "Cabo danificado",
+  "Cabo de alimentação em falha",
+  "Cabo rompido",
+  "Calibração de balança",
+  "Câmera em falha",
+  "Chave de emergência atuada",
+  "Chave mal posicionada",
+  "Chave quebrada",
+  "Código de falha",
+  "Conexão com mau-contato",
+  "Controle de especificação do material",
+  "Corrente anormal",
+  "Danificado(a)",
+  "Deformado(a)",
+  "Desajustado(a)",
+  "Desalinhado(a)",
+  "Desarme acidental",
+  "Desarme pelo disjuntor",
+  "Desbalanceado(a)",
+  "Descalibrado(a)",
+  "Desgastado(a)",
+  "Desparametrizado(a)",
+  "Detonação/Desmonte",
+  "Distensionado(a)",
+  "Emenda danificada",
+  "Emergência atuada",
+  "Entupido(a)",
+  "Falha de comunicação",
+  "Falha de iluminação",
+  "Falha de partida",
+  "Falha na abertura",
+  "Falha no motor",
+  "Falha no PNI",
+  "Falha no sensor",
+  "Falta de Demanda",
+  "Falta de energia",
+  "Falta de Equipamento de Carga",
+  "Falta de Material",
+  "Falta de operador",
+  "Falta Opção na lista (Informe o motivo na descrição)",
+  "Fora de posição",
+  "Fusível queimado",
+  "Gaveta em falha",
+  "Indicação falsa",
+  "Inspeção",
+  "Interlock",
+  "Lâmina gasta",
+  "Limpeza",
+  "Lubrificação insuficiente",
+  "Manobras operacionais",
+  "Manutenção Preventiva - Mapa 52 Semanas",
+  "Mau contato nas conexões",
+  "Mau Tempo/Intemperies",
+  "Melhoria/Modificação/Alteração",
+  "Metal detectado",
+  "Nível alto da pilha pulmão",
+  "Nível alto do chute",
+  "Nível anormal",
+  "Nível baixo de óleo",
+  "Nível de óleo baixo",
+  "Parada MES - Classificação automática",
+  "Parada Não Programada",
+  "Parada PIMS - A Classificar",
+  "Parada Programada",
+  "Presença de bloco",
+  "Presença de não-britável",
+  "Proteção atuada",
+  "Quebrado(a)",
+  "Queimado(a)",
+  "Rasgado(a)",
+  "Revestimento solto/deslocado",
+  "Rolamento danificado",
+  "Rompido(a)",
+  "Sensor em falha",
+  "Sobrecarga",
+  "Soltando tiras",
+  "Solto(a)",
+  "Solto(a)/ausente",
+  "Subvelocidade",
+  "Suporte danificado",
+  "Temperatura anormal",
+  "Travado(a)",
+  "Troca de turno/refeição/reunião/DDSS",
+  "Vazando",
+  "Velocidade anormal",
+  "Vibração alta"
+];
+
+// Filtro do Banco de Dados (mantém a tabela e os números coerentes com os filtros)
+let dbFilterState = { from: '', to: '', source: 'all' };
+
+// Vocabulário local (adapta a leitura com base no uso real, sem mudar o front)
+const __LEX_KEY = "RDO_MOTIVOS_LEX_V1";
+const __loadLex = () => {
+  try { return JSON.parse(localStorage.getItem(__LEX_KEY) || "{}") || {}; } catch(e){ return {}; }
+};
+const __saveLex = (lex) => { try { localStorage.setItem(__LEX_KEY, JSON.stringify(lex || {})); } catch(e){} };
+let __lex = __loadLex();
+
+// Normalização (remove acento / pontuação)
+const __norm = (s) => {
+  return String(s||"")
+    .toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9\s]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+};
+
+// Extrai palavras fortes (para o vocabulário local)
+const __keywords = (text) => {
+  const s = __norm(text);
+  if(!s) return [];
+  const stop = new Set([
+    "problema","problemas","anormalidade","anormalidades","durante","inspecao","inspecao","turno","troca",
+    "sem","com","para","por","em","no","na","nos","nas","de","da","do","das","dos","e","a","o","os","as",
+    "um","uma","uns","umas","ao","aos","as","que","foi","feito","feita","realizado","realizada",
+    "itens","item","ok","nao","não","pendencia","pendencia","aguardando","parado","parada","operacao","operacional",
+    "classifica","classificacao","modulo","sistema","equipamento","operador","equipe","data","hora",
+    "inicio","fim","intervencao","motivo","descricao","detalhes"
+  ]);
+  const words = s.split(" ").filter(w => w.length >= 4 && !stop.has(w) && !/^\d+$/.test(w));
+  const uniq = [];
+  for(const w of words){
+    if(!uniq.includes(w)) uniq.push(w);
+    if(uniq.length >= 6) break;
+  }
+  return uniq;
+};
+
+// Detecta motivos (usa: 1) match direto na lista, 2) vocabulário local, 3) heurística por palavras)
+const __detectMotivos = (text) => {
+  const raw = String(text||"").trim();
+  if(!raw) return [];
+  const n = __norm(raw);
+
+  const hits = new Set();
+
+  // 1) Match direto (frase)
+  for(const m of MOTIVOS_MES){
+    const mn = __norm(m);
+    if(!mn) continue;
+    if(n.includes(mn)) hits.add(m);
+  }
+
+  // 2) Vocabulário local (palavra -> motivo)
+  // lex: { "rolamento": {"Rolamento danificado": 12, "Temperatura anormal": 3}, ... }
+  const words = n.split(" ");
+  for(const w of words){
+    const bucket = __lex[w];
+    if(bucket){
+      const best = Object.entries(bucket).sort((a,b)=>b[1]-a[1])[0];
+      if(best && best[0]) hits.add(best[0]);
+    }
+  }
+
+  // 3) Heurística por palavras do próprio motivo
+  if(hits.size === 0){
+    for(const m of MOTIVOS_MES){
+      const mn = __norm(m);
+      const parts = mn.split(" ").filter(p => p.length >= 5);
+      if(!parts.length) continue;
+      // se qualquer palavra forte do motivo aparece no texto, considera hit
+      const ok = parts.some(p => n.includes(p));
+      if(ok) hits.add(m);
+    }
+  }
+
+  // Ordenar de forma consistente (prioriza os mais específicos: mais palavras)
+  const arr = Array.from(hits);
+  arr.sort((a,b)=> __norm(b).split(" ").length - __norm(a).split(" ").length);
+  return arr.slice(0, 6);
+};
+
+// Atualiza vocabulário local quando há motivo explícito ou inferido com confiança
+const __learnMotivosFromEvent = (ev, motivosDetectados) => {
+  try{
+    const motivosRef = (motivosDetectados && motivosDetectados.length) ? motivosDetectados : [];
+    if(!motivosRef.length) return;
+
+    // texto fonte para extrair palavras
+    const raw = [
+      (ev && ev.resumo) || "",
+      (ev && ev.observacao) || "",
+      (ev && Array.isArray(ev.observacoes) ? ev.observacoes.join(" ") : (ev && ev.observacoes) || ""),
+      (ev && ev.textoCompleto) || ""
+    ].join(" ");
+    const kws = __keywords(raw);
+    if(!kws.length) return;
+
+    // reforça relação palavra -> motivo
+    for(const kw of kws){
+      if(!__lex[kw]) __lex[kw] = {};
+      for(const m of motivosRef){
+        __lex[kw][m] = (__lex[kw][m] || 0) + 1;
+      }
+    }
+    __saveLex(__lex);
+  }catch(e){}
+};
+
 let allSystems = ['Sul 01', 'Sul 02', 'Centro', 'Norte 126', 'Norte 345', 'Norte', 'Fazendão', 'Não identificado'];
 
 // ========================= MAPA FIXO (EQPMT -> SISTEMA) =========================
@@ -3048,6 +3255,79 @@ function createExpandableText(text, maxLength = 200) {
     `;
 }
 
+// ========================= EXTRAÇÃO DE PROBLEMAS (exibir o principal) =========================
+function extractProblemTextFromEvent(event) {
+    try {
+        // 1) Prioridade: NÃO OK explícito
+        if (event && Array.isArray(event.infoNaoOk) && event.infoNaoOk.length > 0) {
+            const rawParts = event.infoNaoOk.map(s => String(s || '').trim()).filter(Boolean);
+            if (rawParts.length) {
+                const motivos = (typeof __detectMotivos === 'function') ? __detectMotivos(rawParts.join(' ; ')) : [];
+                const best = motivos && motivos.length ? motivos : rawParts;
+                return `❌ ${best.join('; ')}`;
+            }
+        }
+
+        // 2) Buscar em observações/descrição (quando operador esquece de marcar NÃO OK)
+        let obsText = '';
+        if (event && event.observacoes && event.observacoes.length > 0) {
+            obsText = event.observacoes.join('\n');
+        } else if (event && event.todasInformacoes && event.todasInformacoes.observacoes) {
+            obsText = Array.isArray(event.todasInformacoes.observacoes) ?
+                event.todasInformacoes.observacoes.join('\n') :
+                String(event.todasInformacoes.observacoes);
+        } else if (event && (event.resumo || event.observacao)) {
+            obsText = String(event.resumo || event.observacao || '');
+        } else if (event && event.textoCompleto) {
+            obsText = String(event.textoCompleto || '');
+        }
+
+        obsText = String(obsText || '').replace(/\r/g,'').trim();
+        if (!obsText) return 'Sem problemas';
+
+        // Remove linhas "template" do checklist (ex.: "Roletes de impacto: _")
+        const lines = obsText.split('\n')
+            .map(l => l.trim())
+            .filter(Boolean)
+            .filter(l => !/:\s*_\s*$/.test(l));
+
+        // Se tiver marcador ⚠️, prioriza a seção de problemas
+        const idxWarn = lines.findIndex(l => l.includes('⚠️'));
+        let chosen = (idxWarn >= 0) ? lines.slice(idxWarn) : lines;
+
+        chosen = chosen
+            .map(l => l.replace(/^\s*[-•]\s*/,'').trim())
+            .filter(l => l && l.toLowerCase() !== 'nenhum');
+
+        const joined = chosen.join('\n').trim();
+
+        // Tratar marcadores vazios
+        const onlyEmptyMarkers =
+            !joined ||
+            /^⚠️\s*problemas\s*selecionados:\s*-\s*$/i.test(joined) ||
+            /^⚠️\s*problemas\s*$/i.test(joined);
+
+        if (onlyEmptyMarkers) return 'Sem problemas';
+
+        // Classificar motivos pelo texto (lista oficial)
+        const motivos = (typeof __detectMotivos === 'function') ? __detectMotivos(joined) : [];
+        if (motivos && motivos.length) {
+            // Mostrar motivos + 1 linha curta de contexto (quando existir)
+            const ctx = joined.replace(/\s+/g,' ').trim();
+            const ctxShort = ctx.length > 90 ? (ctx.slice(0, 90) + '…') : ctx;
+            // evita duplicar quando o texto já é só os motivos
+            const showCtx = ctxShort && !motivos.some(m => ctxShort.toLowerCase().includes(String(m).toLowerCase()));
+            return `❌ ${motivos.join('; ')}${showCtx ? `\n${ctxShort}` : ''}`;
+        }
+
+        // Sem classificação -> retorna texto limpo (curto)
+        const compact = joined.replace(/\s+/g,' ').trim();
+        return compact.length > 110 ? (compact.slice(0,109) + '…') : compact;
+    } catch (e) {
+        return 'Sem problemas';
+    }
+}
+
 // ========================= SISTEMA DE MEMÓRIA =========================
 function loadCompatibleData() {
     try {
@@ -4205,46 +4485,71 @@ function updateComparisonCharts(opEvents, mesEvents) {
         };
 
         // ✅ FUNÇÃO CORRIGIDA: Extrai problemas do texto livre e observações estruturadas
+        // ✅ Extração padronizada de problemas/motivos (OP e MES)
         const __problemsFromEvent = (e) => {
-            // 1) Se já existem problemas explícitos (infoNaoOk ou problemas), usa eles
-            const probs = __safeArr(e?.infoNaoOk).concat(__safeArr(e?.problemas));
-            const cleaned = probs
-                .map(p => String(p || '').replace(/\s+/g, ' ').trim())
-                .filter(Boolean)
-                .filter(p => !/(^|\b)(ok|normal|operou normal|sem anormalidade|sem anomalia)\b/i.test(p))
-                .filter(p => !/^problemas\s+selecionados\s*:?/i.test(p));
+            try {
+                // 0) Texto base (resumo + observações + textoCompleto)
+                const obs = e?.observacoes;
+                const obsText = Array.isArray(obs) ? obs.join('\n') : String(obs || '');
+                const tInfo = (e?.todasInformacoes && e?.todasInformacoes.observacoes)
+                    ? (Array.isArray(e.todasInformacoes.observacoes) ? e.todasInformacoes.observacoes.join('\n') : String(e.todasInformacoes.observacoes))
+                    : '';
+                const resumoTxt = String(e?.resumo || e?.observacao || '');
+                const fullTxt = [resumoTxt, obsText, tInfo, String(e?.textoCompleto||'')].join('\n');
 
-            if (cleaned.length) return cleaned;
+                // 1) Prioridade: NÃO OK explícito
+                const explicit = __safeArr(e?.infoNaoOk).concat(__safeArr(e?.problemas))
+                  .map(p => String(p || '').replace(/\s+/g, ' ').trim())
+                  .filter(Boolean)
+                  .filter(p => !/(^|\b)(ok|normal|operou normal|sem anormalidade|sem anomalia)\b/i.test(p))
+                  .filter(p => !/^problemas\s+selecionados\s*:?/i.test(p));
 
-            // 2) Fallback inteligente: extrai problemas do texto livre ou observações (📝)
-            const obs = e?.observacoes;
-            const obsText = Array.isArray(obs) ? obs.join(' | ') : String(obs || '');
-            const resumoTxt = String(e?.resumo || '');
-            const full = (resumoTxt + ' | ' + obsText).replace(/\s+/g, ' ').trim();
+                // 1a) Tenta mapear explícito para motivos oficiais
+                let motivos = [];
+                if (explicit.length) {
+                    motivos = __detectMotivos(explicit.join(' ; '));
+                    if (!motivos.length) motivos = explicit.slice(0, 4);
+                    __learnMotivosFromEvent(e, motivos);
+                    return motivos;
+                }
 
-            // Palavras-chave que indicam problema real
-            const KW = /(quebr|quebra|vaz|vazamento|parad|parou|trav|trava|alarme|chave|emerg|acúm|acumulo|acúmulo|entup|falta|ausên|ausencia|anom|anormal|desarm|desarme|falh|falha|avari|avaria|correia.*(rasg|cort|desalinh)|rol(e|é)te|tambo|motor|bomba|hidraul|press(ã|a)o|pims|sensor|autom|nivel|material|bloco|britad)/i;
+                // 2) Sem explícito -> detecta motivos pelo texto completo
+                const motivosByText = __detectMotivos(fullTxt);
+                if (motivosByText.length) {
+                    __learnMotivosFromEvent(e, motivosByText);
+                    return motivosByText;
+                }
 
-            // Ruído a ser ignorado
-            const NOISE = /(boa\s+(noite|tarde|dia)|troca\s+de\s+turno|turno\s+[A-D]|operador|equipe|data\s*:|hora\s*:)/i;
+                // 3) Fallback: pega frases relevantes (como antes), mas tenta classificar
+                const full = String(fullTxt || '').replace(/\r/g,'').trim();
+                if (!full) return [];
 
-            // Quebra o texto em frases ou itens
-            const chunks = full.split(/\s*(?:\||;|•|\-|—|\.|\n|\r)\s*/).map(x => x.trim()).filter(Boolean);
+                // Remove linhas "template" do checklist (ex.: "Roletes de impacto: _")
+                const lines = full.split('\n').map(l => l.trim()).filter(Boolean).filter(l => !/:\s*_\s*$/.test(l));
 
-            const hits = [];
-            for (const c of chunks) {
-                const cc = c.replace(/^[^A-Za-zÀ-ÿ0-9]+/, '').trim();
-                if (!cc) continue;
-                if (NOISE.test(cc)) continue;
-                if (/(^|\b)(ok|normal|operou normal|sem anormalidade|sem anomalia)\b/i.test(cc)) continue;
-                if (cc.length < 6) continue;
-                if (KW.test(cc)) hits.push(cc);
+                // Se tiver marcador ⚠️, prioriza a seção de problemas
+                const idxWarn = lines.findIndex(l => l.includes('⚠️'));
+                let chosen = (idxWarn >= 0) ? lines.slice(idxWarn) : lines;
+
+                // Limpeza de ruído
+                chosen = chosen
+                  .map(l => l.replace(/^\s*[-•]\s*/,'').trim())
+                  .filter(l => l && l.toLowerCase() !== 'nenhum');
+
+                const textFallback = chosen.join(' \n ');
+                const fallbackMotivos = __detectMotivos(textFallback);
+                if (fallbackMotivos.length) {
+                    __learnMotivosFromEvent(e, fallbackMotivos);
+                    return fallbackMotivos;
+                }
+
+                // Último recurso: retorna um pedaço curto (não polui Pareto)
+                const short = (textFallback || '').replace(/\s+/g,' ').trim();
+                if (!short) return [];
+                return [short.slice(0, 80) + (short.length > 80 ? '…' : '')];
+            } catch (err) {
+                return [];
             }
-
-            // Se não achou nada, pega os 2 primeiros chunks (melhor que nada)
-            if (!hits.length) return chunks.slice(0, 2);
-
-            return hits.slice(0, 4);
         };
 
         const __buildProblemCounts = (events) => {
@@ -4258,26 +4563,36 @@ function updateComparisonCharts(opEvents, mesEvents) {
 
         // Contagem de problemas com vínculo aos equipamentos (para exibir "equipamento • problema")
         const __buildProblemCountsWithEquip = (events) => {
-            const map = new Map(); // problem -> {count, eqMap, examples(Set)}
+            const map = new Map(); // problem -> {count, eqMap, sysMap, examples(Set)}
             (events || []).forEach(e => {
                 const eq = String((e && e.equipamento) || '').trim().toUpperCase() || '—';
+                const sys = String((e && e.sistema) || '').trim() || '—';
                 const ps = __problemsFromEvent(e);
                 const exRaw = String((e && (e.resumo || e.observacao || e.observacoes)) || '').trim();
                 const ex = exRaw.replace(/\s+/g,' ').slice(0, 160);
                 ps.forEach(p => {
                     const key = String(p || '').trim();
                     if (!key) return;
-                    if (!map.has(key)) map.set(key, {count:0, eqMap:new Map(), examples:new Set()});
+                    if (!map.has(key)) map.set(key, {count:0, eqMap:new Map(), sysMap:new Map(), examples:new Set()});
                     const obj = map.get(key);
                     obj.count += 1;
                     obj.eqMap.set(eq, (obj.eqMap.get(eq) || 0) + 1);
+                    // mapear sistema por equipamento (mais frequente)
+                    if (!obj.sysMap.has(eq)) obj.sysMap.set(eq, new Map());
+                    const sm = obj.sysMap.get(eq);
+                    sm.set(sys, (sm.get(sys) || 0) + 1);
                     if (ex) obj.examples.add(ex);
                 });
             });
             const arr = Array.from(map.entries()).map(([problem, obj]) => {
                 const eqTop = Array.from(obj.eqMap.entries()).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+                const sysTop = (()=>{
+                    const sm = obj.sysMap && obj.sysMap.get(eqTop);
+                    if (!sm) return '—';
+                    return Array.from(sm.entries()).sort((a,b)=>b[1]-a[1])[0]?.[0] || '—';
+                })();
                 const examples = Array.from(obj.examples).slice(0, 3);
-                return { problem, count: obj.count, eqTop, eqMap: obj.eqMap, examples };
+                return { problem, count: obj.count, eqTop, sysTop, eqMap: obj.eqMap, examples };
             });
             arr.sort((a,b)=>b.count - a.count);
             return arr;
@@ -4345,8 +4660,10 @@ function updateComparisonCharts(opEvents, mesEvents) {
             const labels = sorted.map((it) => {
                 const pFull = String(it.problem || '').trim();
                 const eq = String(it.eqTop || '—').trim();
+                const sys = String(it.sysTop || '—').trim();
+                const eqLabel = (sys && sys !== '—') ? `${eq} • ${sys}` : eq;
                 const lines = __wrapLines(pFull, 30, 2); // 2 linhas do problema (mais legível)
-                return [eq].concat(lines);
+                return [eqLabel].concat(lines);
             });
             const values = sorted.map((it) => it.count);
 
@@ -5049,17 +5366,9 @@ function updateTimelineTable(events) {
         const descCell = document.createElement('td');
         descCell.className = 'description-cell';
         
-        let descText = '';
-        if (event.observacoes && event.observacoes.length > 0) {
-            descText = event.observacoes.join('; ');
-        } else if (event.resumo) {
-            descText = event.resumo;
-        } else {
-            descText = 'Sem descrição';
-        }
-        
-        descCell.innerHTML = createExpandableText(descText, 100);
-        
+                let descText = extractProblemTextFromEvent(event);
+        descCell.innerHTML = createExpandableText(descText, 110);
+
         const systemCell = document.createElement('td');
         if (event.processingType === 'FREE_TEXT') {
             const confidence = event.confidence ? Math.round(event.confidence * 100) : 0;
@@ -5089,26 +5398,36 @@ function updateTimelineTable(events) {
 function refreshDBTable() {
     const tbody = document.getElementById("dbTableBody");
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
-    const allEvents = [...eventsOperadoresAll, ...eventsMESAll]
-        .sort((a, b) => b.data - b.data);
-    
-    allEvents.forEach(event => {
+
+    // Base: todos os eventos
+    let filtered = [...eventsOperadoresAll, ...eventsMESAll];
+
+    // Aplicar estado do filtro (se existir)
+    const from = (dbFilterState && dbFilterState.from) ? dbFilterState.from : '';
+    const to = (dbFilterState && dbFilterState.to) ? dbFilterState.to : '';
+    const source = (dbFilterState && dbFilterState.source) ? dbFilterState.source : 'all';
+
+    if (from) {
+        const fromDate = new Date(from + 'T00:00:00');
+        filtered = filtered.filter(e => e.data >= fromDate);
+    }
+    if (to) {
+        const toDate = new Date(to + 'T23:59:59');
+        filtered = filtered.filter(e => e.data <= toDate);
+    }
+    if (source !== 'all') {
+        filtered = filtered.filter(e => e.fonte === source);
+    }
+
+    filtered.sort((a, b) => b.data - a.data);
+
+    filtered.forEach(event => {
         const tr = document.createElement('tr');
-        
-        let obsText = '';
-        if (event.observacoes && event.observacoes.length > 0) {
-            obsText = event.observacoes.join('; ');
-        } else if (event.todasInformacoes && event.todasInformacoes.observacoes) {
-            obsText = Array.isArray(event.todasInformacoes.observacoes) ? 
-                event.todasInformacoes.observacoes.join('; ') : 
-                String(event.todasInformacoes.observacoes);
-        } else {
-            obsText = 'Sem observações';
-        }
-        
+
+        let obsText = extractProblemTextFromEvent(event);
+
         let processCell = '';
         if (event.processingType === 'FREE_TEXT') {
             const confidence = event.confidence ? Math.round(event.confidence * 100) : 0;
@@ -5120,7 +5439,7 @@ function refreshDBTable() {
         } else {
             processCell = '<span class="process-type-badge">📋</span>';
         }
-        
+
         tr.innerHTML = `
             <td>${event.data.toLocaleDateString('pt-BR')} ${event.data.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</td>
             <td><span class="badge ${event.fonte === 'OP' ? 'op' : 'mes'}">${event.fonte}</span></td>
@@ -5131,16 +5450,17 @@ function refreshDBTable() {
             <td><span class="badge ${getCategoryBadgeClass(event.categoria)}">${event.categoria}</span></td>
             <td style="color: ${event.infoOk?.length > 0 ? 'var(--sam-green)' : 'inherit'}">${event.infoOk?.length || 0}</td>
             <td style="color: ${event.infoNaoOk?.length > 0 ? '#c62828' : 'inherit'}">${event.infoNaoOk?.length || 0}</td>
-            <td class="observations-cell">${createExpandableText(obsText, 100)}</td>
+            <td class="observations-cell">${createExpandableText(obsText, 110)}</td>
             <td>${processCell}</td>
         `;
-        
+
         tbody.appendChild(tr);
     });
-    
+
     updateDBStats();
     updateEquipmentStats();
 }
+
 
 function getCategoryBadgeClass(category) {
     switch(category) {
@@ -5558,88 +5878,20 @@ function filterDB() {
     const from = document.getElementById("dbFrom").value;
     const to = document.getElementById("dbTo").value;
     const source = document.getElementById("dbSource").value;
-    
-    let filtered = [...eventsOperadoresAll, ...eventsMESAll];
-    
-    if (from) {
-        const fromDate = new Date(from + 'T00:00:00');
-        filtered = filtered.filter(e => e.data >= fromDate);
-    }
-    
-    if (to) {
-        const toDate = new Date(to + 'T23:59:59');
-        filtered = filtered.filter(e => e.data <= toDate);
-    }
-    
-    if (source !== 'all') {
-        filtered = filtered.filter(e => e.fonte === source);
-    }
-    
-    const tbody = document.getElementById("dbTableBody");
-    if (tbody) {
-        tbody.innerHTML = '';
-        
-        filtered.sort((a, b) => b.data - b.data).forEach(event => {
-            const tr = document.createElement('tr');
-            
-            let obsText = '';
-            if (event.observacoes && event.observacoes.length > 0) {
-                obsText = event.observacoes.join('; ');
-            } else if (event.todasInformacoes && event.todasInformacoes.observacoes) {
-                obsText = Array.isArray(event.todasInformacoes.observacoes) ? 
-                    event.todasInformacoes.observacoes.join('; ') : 
-                    String(event.todasInformacoes.observacoes);
-            } else {
-                obsText = 'Sem observações';
-            }
-            
-            let processCell = '';
-            if (event.processingType === 'FREE_TEXT') {
-                const confidence = event.confidence ? Math.round(event.confidence * 100) : 0;
-                processCell = `<span class="confidence-badge ${getConfidenceClass(event.confidence)}">🔍 Sistema ${confidence}%</span>`;
-            } else if (event.processingType === 'RDO_PARSER') {
-                processCell = '<span class="process-type-badge">🎯 Estruturado</span>';
-            } else if (event.processingType === 'MES_PARSER_FLEX') {
-                processCell = '<span class="process-type-badge">💻 MES</span>';
-            } else {
-                processCell = '<span class="process-type-badge">📋</span>';
-            }
-            
-            tr.innerHTML = `
-                <td>${event.data.toLocaleDateString('pt-BR')} ${event.data.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</td>
-                <td><span class="badge ${event.fonte === 'OP' ? 'op' : 'mes'}">${event.fonte}</span></td>
-                <td>${event.sistema || '-'}</td>
-                <td><strong>${event.equipamento}</strong></td>
-                <td>${event.operador || '-'}</td>
-                <td>${event.turno || '-'}</td>
-                <td><span class="badge ${getCategoryBadgeClass(event.categoria)}">${event.categoria}</span></td>
-                <td style="color: ${event.infoOk?.length > 0 ? 'var(--sam-green)' : 'inherit'}">${event.infoOk?.length || 0}</td>
-                <td style="color: ${event.infoNaoOk?.length > 0 ? '#c62828' : 'inherit'}">${event.infoNaoOk?.length || 0}</td>
-                <td class="observations-cell">${createExpandableText(obsText, 100)}</td>
-                <td>${processCell}</td>
-            `;
-            
-            tbody.appendChild(tr);
-        });
-        
-        if (filtered.length === 0) {
-            const tr = document.createElement('tr');
-            const td = document.createElement('td');
-            td.colSpan = 11;
-            td.className = 'no-data';
-            td.textContent = 'Nenhum evento encontrado com os filtros aplicados.';
-            tr.appendChild(td);
-            tbody.appendChild(tr);
-        }
-    }
+
+    dbFilterState = { from: from || '', to: to || '', source: source || 'all' };
+    refreshDBTable();
 }
+
 
 function resetDB() {
     document.getElementById("dbFrom").value = '';
     document.getElementById("dbTo").value = '';
     document.getElementById("dbSource").value = 'all';
+    dbFilterState = { from: '', to: '', source: 'all' };
     refreshDBTable();
 }
+
 
 function exportAllData() {
     const allData = {
