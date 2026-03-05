@@ -87,16 +87,25 @@ summary{cursor:pointer;font-weight:800}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-  window.firebaseConfig = {
-  apiKey: "AIzaSyBqF7_FmiSVj_pw81TxVIf3_gjgwJnWaOc",
-  authDomain: "rdo-sync-b0e74.firebaseapp.com",
-  projectId: "rdo-sync-b0e74",
-  storageBucket: "rdo-sync-b0e74.firebasestorage.app",
-  messagingSenderId: "679708769339",
-  appId: "1:679708769339:web:f9aabaaeb289f8c6b9b01e"
-};
+  window.firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
   try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) { console.warn("firebase init err", e); }
   window.__db = (() => { try { return firebase.firestore(); } catch (e) { console.warn("firestore err", e); return null; } })();
+</script>
+<!-- BUILD_FIREBASE_LOADER_1772733127 Firebase Loader (Compat) -->
+<script>
+  window.firebaseConfig = {"apiKey": "AIzaSyBqF7_FmiSVj_pw81TxVIf3_gjgwJnWaOc", "authDomain": "rdo-sync-b0e74.firebaseapp.com", "projectId": "rdo-sync-b0e74", "storageBucket": "rdo-sync-b0e74.firebasestorage.app", "messagingSenderId": "679708769339", "appId": "1:679708769339:web:f9aabaaeb289f8c6b9b01e"};
+  window.__BUILD_TAG__ = "BUILD_FIREBASE_LOADER_1772733127";
+</script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  try {
+    firebase.initializeApp(window.firebaseConfig);
+    window.__db = firebase.firestore();
+    console.log("🔥 Firebase OK | projectId=", window.firebaseConfig.projectId, "| build=", window.__BUILD_TAG__);
+  } catch(e) {
+    console.warn("❌ Firebase init falhou (provável bloqueio de rede/CSP):", e);
+  }
 </script>
 </head>
 <body>
@@ -610,6 +619,46 @@ async function domtoImageSafe(node){
 
   window.addEventListener("load", start);
   window.syncFirebase = ()=> syncFirebaseNow(getPreviewText());
+})();
+</script>
+
+
+<script>
+/* ====== SYNC PREVIEW -> FIRESTORE (rdo_operadores/live) ====== */
+(function(){
+  const COL="rdo_operadores", DOC="live";
+  let last="", t=null;
+  function txt(){
+    const el=document.getElementById("preview");
+    return (el?.innerText||el?.textContent||"").trim();
+  }
+  async function push(v){
+    if(!v) return;
+    if(!window.__db){ console.warn("⚠️ __db indefinido (Firebase não carregou)"); return; }
+    try{
+      await window.__db.collection(COL).doc(DOC).set({
+        text:v,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source:"rdo"
+      },{merge:true});
+    }catch(e){ console.warn("❌ Firestore write falhou:", e); }
+  }
+  function schedule(v){ clearTimeout(t); t=setTimeout(()=>push(v), 350); }
+  function changed(){
+    const v=txt(); if(!v||v===last) return;
+    last=v; schedule(v);
+  }
+  function start(){
+    const el=document.getElementById("preview");
+    if(el){
+      const mo=new MutationObserver(changed);
+      mo.observe(el,{subtree:true,childList:true,characterData:true});
+    }
+    setInterval(changed, 800);
+    setTimeout(changed, 300);
+  }
+  window.addEventListener("load", start);
+  window.syncFirebase = ()=>push(txt());
 })();
 </script>
 
