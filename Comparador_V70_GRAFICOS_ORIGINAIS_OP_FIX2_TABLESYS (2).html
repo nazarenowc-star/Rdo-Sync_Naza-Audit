@@ -952,33 +952,8 @@ td.description-cell {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<!-- Firebase (compat) para Firestore -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script>
-  // Config Firebase (Rdo-Sync)
-  window.FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ",
-  authDomain: "rdo-sync.firebaseapp.com",
-  projectId: "rdo-sync",
-  storageBucket: "rdo-sync.firebasestorage.app",
-  messagingSenderId: "551344630048",
-  appId: "1:551344630048:web:87e485e712473a46234f45"
-};
-</script>
-
 </head>
 <body>
-
-<!-- Botão Voltar ao Início (não altera front, é flutuante) -->
-<a id="btnHome" href="index.html" style="position:fixed;left:14px;bottom:14px;z-index:99999;
-background:#ffffff;border:1px solid rgba(0,0,0,.12);box-shadow:0 10px 28px rgba(2,8,23,.12);
-padding:10px 12px;border-radius:999px;text-decoration:none;color:#0f172a;font-weight:800;
-display:inline-flex;gap:8px;align-items:center;">
-  🏠 <span style="font-weight:800">Início</span>
-</a>
-
 <div id="globalAlarm" class="global-alarm hidden" role="alert">🚨 <strong>ALARME</strong>: Ocorrências críticas detectadas. Verifique os equipamentos destacados.</div>
 <header>
     <div class="logo">
@@ -6374,80 +6349,5 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
     <!-- Injetor de Sincronização -->
 <script src="injetar-sincronizacao.js"></script>
-
-
-<script>
-(function(){
-  // Auto-init Firebase + Realtime (rdo_operadores -> txtOperadores -> processOperadoresCompleto)
-  function initFirebaseIfNeeded(){
-    try{
-      if(!window.firebase){ console.warn('Firebase SDK não carregou.'); return null; }
-      if(!firebase.apps || !firebase.apps.length){
-        firebase.initializeApp(window.FIREBASE_CONFIG);
-      }
-      return firebase.firestore();
-    }catch(e){
-      console.error('Falha init Firebase:', e);
-      return null;
-    }
-  }
-
-  function setIfExists(id, text){
-    const el = document.getElementById(id);
-    if(el) el.textContent = text;
-  }
-
-  function pasteAndProcess(text){
-    const ta = document.getElementById('txtOperadores');
-    if(ta){
-      ta.value = text;
-      ta.dispatchEvent(new Event('input', {bubbles:true}));
-      ta.dispatchEvent(new Event('change', {bubbles:true}));
-    }
-    if(typeof window.processOperadoresCompleto === 'function'){
-      window.processOperadoresCompleto();
-    }
-  }
-
-  window.addEventListener('load', ()=>{
-    const db = initFirebaseIfNeeded();
-    if(!db) return;
-
-    // Marca online (se houver UI)
-    setIfExists('firebaseStatus', 'Online');
-    setIfExists('comparadorStatus', 'Conectado e sincronizando...');
-    console.log('🔄 Comparador70: Realtime ligado em rdo_operadores');
-
-    db.collection('rdo_operadores')
-      .orderBy('timestamp', 'desc')
-      .limit(1)
-      .onSnapshot((snap)=>{
-        if(!snap || snap.empty) return;
-        const doc = snap.docs[0];
-        const data = doc.data() || {};
-        const text = (data.text || '').toString();
-        if(!text.trim()) return;
-
-        // Evita reprocessar o mesmo texto repetidamente
-        const lastHash = window.__LAST_RDO_HASH__;
-        const newHash = String(text.length) + '|' + text.slice(0,120);
-        if(lastHash === newHash) return;
-        window.__LAST_RDO_HASH__ = newHash;
-
-        const now = new Date().toLocaleString('pt-BR');
-        setIfExists('lastSync', now);
-        try{ localStorage.setItem('comparadorLastSync', String(Date.now())); }catch(e){}
-        try{ localStorage.setItem('lastComparadorSync', String(Date.now())); }catch(e){}
-        console.log('✅ Comparador70: recebeu novo RDO do Firestore', {id: doc.id});
-
-        pasteAndProcess(text);
-      }, (err)=>{
-        console.error('❌ Comparador70 realtime erro:', err);
-        setIfExists('comparadorStatus', 'Erro de conexão: ' + (err && err.message ? err.message : err));
-      });
-  });
-})();
-</script>
-
 </body>
 </html>
