@@ -88,8 +88,8 @@ summary{cursor:pointer;font-weight:800}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
   window.firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
-  try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) {}
-  window.__db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
+  try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) { console.warn("firebase init err", e); }
+  window.__db = (() => { try { return firebase.firestore(); } catch (e) { console.warn("firestore err", e); return null; } })();
 </script>
 </head>
 <body>
@@ -548,34 +548,63 @@ async function domtoImageSafe(node){
 }
 
 </script>
-</body>
-</html>
 
 <script>
-let __liveTimer=null;
-function __syncLiveDebounced(text){
-  if(!text||!text.trim()||!window.__db) return;
-  clearTimeout(__liveTimer);
-  __liveTimer=setTimeout(()=>{
-    window.__db.collection("rdo_operadores").doc("live").set({
-      text:text,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      source:"rdo"
-    },{merge:true}).catch(e=>console.warn("Falha ao gravar live:",e));
-  },350);
-}
-let __previewObserver=null;
-function __startPreviewObserver(){
-  const el=document.getElementById("preview");
-  if(!el||__previewObserver) return;
-  __previewObserver=new MutationObserver(()=>{
-    const t=(el.innerText||el.textContent||"").trim();
-    if(t) __syncLiveDebounced(t);
-  });
-  __previewObserver.observe(el,{subtree:true,childList:true,characterData:true});
-  const initial=(el.innerText||el.textContent||"").trim();
-  if(initial) __syncLiveDebounced(initial);
-}
-window.addEventListener("load",()=>setTimeout(__startPreviewObserver,250));
-window.__FIRE_SYNC_RDO__=true;
+(function(){
+  const PATH_COL = "rdo_operadores";
+  const PATH_DOC = "live";
+  let lastText = "";
+  let tmr = null;
+
+  function getPreviewText(){
+    const el = document.getElementById("preview");
+    return (el?.innerText || el?.textContent || "").trim();
+  }
+
+  async function syncFirebaseNow(text){
+    if(!text || !text.trim()) return;
+    if(!window.__db){
+      console.warn("⚠️ __db não inicializado");
+      return;
+    }
+    try{
+      await window.__db.collection(PATH_COL).doc(PATH_DOC).set({
+        text: text,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        source: "rdo"
+      }, {merge:true});
+    }catch(e){
+      console.warn("❌ sync falhou:", e);
+    }
+  }
+
+  function scheduleSync(text){
+    clearTimeout(tmr);
+    tmr = setTimeout(()=> syncFirebaseNow(text), 350);
+  }
+
+  function onChange(){
+    const text = getPreviewText();
+    if(!text) return;
+    if(text === lastText) return;
+    lastText = text;
+    scheduleSync(text);
+  }
+
+  function start(){
+    const el = document.getElementById("preview");
+    if(el){
+      const mo = new MutationObserver(onChange);
+      mo.observe(el, {subtree:true, childList:true, characterData:true});
+    }
+    setInterval(onChange, 800);
+    setTimeout(onChange, 300);
+  }
+
+  window.addEventListener("load", start);
+  window.syncFirebase = ()=> syncFirebaseNow(getPreviewText());
+})();
 </script>
+
+</body>
+</html>
