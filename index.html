@@ -5,351 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Integrado RDO - Samarco</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #f3f6fb 0%, #eef2f7 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            width: 100%;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .header h1 {
-            color: #005c8f;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,92,143,0.1);
-        }
-        
-        .header p {
-            color: #4b4b4b;
-            font-size: 1.1em;
-        }
-        
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-            gap: 30px;
-            margin-top: 30px;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 24px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            transition: all 0.3s;
-            border: 1px solid rgba(0,92,143,0.1);
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 60px rgba(0,92,143,0.15);
-            border-color: #005c8f;
-        }
-        
-        .card-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-        
-        .card h2 {
-            color: #005c8f;
-            margin-bottom: 15px;
-            font-size: 1.8em;
-        }
-        
-        .card p {
-            color: #4b4b4b;
-            margin-bottom: 20px;
-            line-height: 1.6;
-        }
-        
-        .badge {
-            background: #e6f0f6;
-            color: #005c8f;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            display: inline-block;
-            margin-right: 5px;
-            margin-bottom: 5px;
-        }
-        
-        .status-bar {
-            margin-top: 40px;
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            border: 1px solid #d5dde7;
-        }
-        
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .status-item:last-child {
-            border-bottom: none;
-        }
-        
-        .indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4caf50;
-        }
-        
-        .indicator.offline {
-            background: #f44336;
-        }
-        
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-        
-        .file-list {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-            font-family: monospace;
-            font-size: 0.9em;
-        }
-        
-        .file-list strong {
-            color: #005c8f;
-        }
+        /* Seu CSS existente (mantenha) */
     </style>
 </head>
 <body>
     <div class="container">
-        
-<div style="position:sticky;top:0;z-index:999;background:rgba(243,246,251,.92);backdrop-filter:blur(6px);
-padding:10px 0;margin-bottom:14px;">
-  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center;">
-    <button id="btnTop" style="border:none;background:#ffffff;border:1px solid #d5dde7;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer;">⬆️ Topo</button>
-    <a href="index.html" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">🏠 Início</a>
-    <a id="btnOpenRDO" href="#" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">📱 Abrir RDO</a>
-    <a id="btnOpenComp" href="#" style="text-decoration:none;border:1px solid #d5dde7;background:#ffffff;border-radius:999px;padding:10px 14px;font-weight:800;color:#005c8f;">📊 Abrir Comparador</a>
-  </div>
-</div>
-<div class="header">
-            <h1>⚡ Sistema Integrado RDO Samarco</h1>
-            <p>Coleta em campo + Análise em tempo real</p>
-        </div>
-        
-        <div class="cards">
-            <!-- RDO-Correias com o nome EXATAMENTE como está no GitHub -->
-            <a href="Correias-RDO-multi-v1.3f-3fnal%20(5).html" class="card">
-                <div class="card-icon">📱</div>
-                <h2>RDO-Correias</h2>
-                <p>Sistema de inspeção em campo para operadores. Coleta checklist, fotos e gera relatórios automaticamente.</p>
-                <span class="badge">✓ Check-list completo</span>
-                <span class="badge">📸 Captura de fotos</span>
-                <span class="badge">📤 Compartilhamento</span>
-            </a>
-            
-            <!-- Comparador-V70 com o nome EXATAMENTE como está no GitHub -->
-            <a href="Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html" class="card">
-                <div class="card-icon">📊</div>
-                <h2>Comparador-V70</h2>
-                <p>Análise avançada comparando dados dos operadores com MES. Gera gráficos, heatmaps e relatórios gerenciais.</p>
-                <span class="badge">📈 Análise comparativa</span>
-                <span class="badge">🔥 Heatmaps</span>
-                <span class="badge">📊 Pareto</span>
-            </a>
-        </div>
-        
-        <div class="status-bar">
-            <h3 style="color: #005c8f; margin-bottom: 15px;">📡 Status da Sincronização</h3>
-            <div class="status-item">
-                <span class="indicator" id="statusRDO"></span>
-                <span><strong>RDO-Correias:</strong> <span id="rdoStatus">Conectado e sincronizando...</span></span>
-            </div>
-            <div class="status-item">
-                <span class="indicator" id="statusComparador"></span>
-                <span><strong>Comparador-V70:</strong> <span id="comparadorStatus">Aguardando conexão...</span></span>
-            </div>
-            <div class="status-item">
-                <span class="indicator"></span>
-                <span><strong>Última sincronização:</strong> <span id="lastSync">-</span></span>
-            </div>
-            <div class="status-item">
-                <span class="indicator"></span>
-                <span><strong>Firebase:</strong> <span id="firebaseStatus">Online</span></span>
-            </div>
-        </div>
-        
-        <div class="file-list">
-            <strong>📁 Arquivos no seu repositório:</strong><br>
-            • Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS (2).html<br>
-            • Correias-RDO-multi-v1.3f-3fnal (5).html<br>
-            • firebase-config.js<br>
-            • index.html<br>
-            • sync-bridge.js
-        </div>
-        
-        <div class="footer">
-            <p>⚡ Sistema integrado via Firebase - Dados sincronizados em tempo real</p>
-            <p style="margin-top: 10px; font-size: 0.8em;">Links atualizados com os nomes exatos dos arquivos</p>
-        </div>
+        <!-- Seu conteúdo HTML existente (mantenha) -->
+        <div class="cards">...</div>
+        <div class="status-bar">...</div>
+        <div class="file-list">...</div>
     </div>
-    
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
-    
-    <script>
-        // Atualizar status na página inicial
-        function updateIndexStatus() {
-            const rdoIndicator = document.getElementById('statusRDO');
-            const comparadorIndicator = document.getElementById('statusComparador');
-            const lastSyncSpan = document.getElementById('lastSync');
-            
-            // Verificar status baseado no localStorage (compartilhado entre páginas)
-            const rdoLastSync = localStorage.getItem('rdoLastSync');
-            const comparadorLastSync = localStorage.getItem('comparadorLastSync');
-            
-            if (rdoLastSync) {
-                rdoIndicator.style.background = '#4caf50';
-                document.getElementById('rdoStatus').textContent = 'Online - Último envio: ' + new Date(rdoLastSync).toLocaleTimeString();
-            }
-            
-            if (comparadorLastSync) {
-                comparadorIndicator.style.background = '#4caf50';
-                document.getElementById('comparadorStatus').textContent = 'Online - Última atualização: ' + new Date(comparadorLastSync).toLocaleTimeString();
-            }
-            
-            const lastSync = localStorage.getItem('lastComparadorSync');
-            if (lastSync) {
-                lastSyncSpan.textContent = new Date(lastSync).toLocaleString();
-            } else {
-                lastSyncSpan.textContent = 'Nunca';
-            }
-            
-            // Atualizar a cada 5 segundos
-            setTimeout(updateIndexStatus, 5000);
-        }
-        
-        updateIndexStatus();
-    </script>
-        <div class="footer">
-        ...
-    </div>
-    
-    <!-- Injetor de Sincronização -->
+
+    <!-- ========================================= -->
+    <!-- ÚNICO PONTO DE CARREGAMENTO DOS SCRIPTS  -->
+    <!-- ========================================= -->
+    <!-- 1. INJETOR: Ele vai carregar todo o resto na ordem correta -->
     <script src="injetar-sincronizacao.js"></script>
-    
-    <!-- Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
-    
-</body>
-</html>
 
-<script>
-(function(){
-  // Botões topo
-  document.getElementById('btnTop')?.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
-  const rdoHref = "Correias-RDO-multi-v1.3f-3fnal%20(5).html";
-  const compHref = "Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html";
-  const aR = document.getElementById('btnOpenRDO'); if(aR && rdoHref) aR.href = rdoHref;
-  const aC = document.getElementById('btnOpenComp'); if(aC && compHref) aC.href = compHref;
+    <!-- 2. Script específico para a página index.html (opcional) -->
+    <script>
+        // Lógica específica do index, como atualizar status
+        (function(){
+            console.log('🏠 Página inicial carregada.');
 
-  function set(id, txt){
-    const el = document.getElementById(id);
-    if(el) el.textContent = txt;
-  }
-  function setIndicator(id, online){
-    const el = document.getElementById(id);
-    if(!el) return;
-    el.classList.toggle('offline', !online);
-  }
+            // Funções para atualizar a interface do index (exemplo)
+            function updateIndexStatus() {
+                const rdoIndicator = document.getElementById('statusRDO');
+                const comparadorIndicator = document.getElementById('statusComparador');
+                const lastSyncSpan = document.getElementById('lastSync');
 
-  // Status por localStorage (compatível) + Firestore (mais confiável)
-  function updateFromLocal(){
-    try{
-      const rdoLastSync = localStorage.getItem('rdoLastSync');
-      const compLastSync = localStorage.getItem('comparadorLastSync');
-      if(rdoLastSync){
-        setIndicator('statusRDO', true);
-        set('rdoStatus','Online - Último envio: ' + new Date(Number(rdoLastSync)).toLocaleTimeString('pt-BR'));
-      }
-      if(compLastSync){
-        setIndicator('statusComparador', true);
-        set('comparadorStatus','Online - Última atualização: ' + new Date(Number(compLastSync)).toLocaleTimeString('pt-BR'));
-      }
-    }catch(e){}
-  }
+                const rdoLastSync = localStorage.getItem('rdoLastSync');
+                const comparadorLastSync = localStorage.getItem('comparadorLastSync');
 
-  function initFB(){
-    try{
-      if(!window.firebase) return null;
-      if(!window.FIREBASE_CONFIG || !window.FIREBASE_CONFIG.projectId) return null;
-      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(window.FIREBASE_CONFIG);
-      return firebase.firestore();
-    }catch(e){ console.warn('Firebase init falhou', e); return null; }
-  }
+                if (rdoLastSync) {
+                    if(rdoIndicator) rdoIndicator.style.background = '#4caf50';
+                    document.getElementById('rdoStatus').textContent = 'Online - Último envio: ' + new Date(parseInt(rdoLastSync)).toLocaleTimeString();
+                }
+                if (comparadorLastSync) {
+                    if(comparadorIndicator) comparadorIndicator.style.background = '#4caf50';
+                    document.getElementById('comparadorStatus').textContent = 'Online - Última atualização: ' + new Date(parseInt(comparadorLastSync)).toLocaleTimeString();
+                }
 
-  function listenFirestore(){
-    const db = initFB();
-    if(!db) return;
-    db.collection('rdo_operadores').orderBy('timestamp','desc').limit(1).onSnapshot((snap)=>{
-      if(!snap || snap.empty) return;
-      const d = snap.docs[0].data()||{};
-      setIndicator('statusRDO', true);
-      set('rdoStatus','Conectado e sincronizando…');
-      const now = new Date().toLocaleString('pt-BR');
-      set('lastSync', now);
-      // Se existir comparador aberto, ele atualiza o próprio status via localStorage
-      // Aqui mostramos que já existe dado novo pronto para o comparador processar
-      const hasComp = !!(localStorage.getItem('comparadorLastSync'));
-      setIndicator('statusComparador', hasComp);
-      set('comparadorStatus', hasComp ? 'Online - pronto' : 'Aguardando abertura… (auto ao abrir)');
-      set('firebaseStatus','Online');
-    }, (err)=>{
-      console.error('Firestore listener erro', err);
-      set('firebaseStatus','Erro');
-    });
-  }
+                const lastSync = localStorage.getItem('lastComparadorSync') || localStorage.getItem('rdoLastSync');
+                if (lastSync && lastSyncSpan) {
+                    lastSyncSpan.textContent = new Date(parseInt(lastSync)).toLocaleString();
+                }
+            }
+            updateIndexStatus();
+            setInterval(updateIndexStatus, 5000);
 
-  updateFromLocal();
-  listenFirestore();
-  setInterval(updateFromLocal, 3000);
-})();
-</script>
-
+            // Lógica dos botões de navegação
+            document.getElementById('btnTop')?.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+            // Certifique-se de que os nomes dos arquivos aqui correspondam EXATAMENTE aos nomes no seu servidor
+            const rdoHref = "Correias-RDO-multi-v1.3f-3fnal%20(5).html"; // Nome codificado
+            const compHref = "Comparador_V70_GRAFICOS_ORIGINAIS_OP_FIX2_TABLESYS%20(2).html"; // Nome codificado
+            const aR = document.getElementById('btnOpenRDO'); if(aR && rdoHref) aR.href = rdoHref;
+            const aC = document.getElementById('btnOpenComp'); if(aC && compHref) aC.href = compHref;
+        })();
+    </script>
+    <!-- NÃO carregar Firebase ou outros scripts aqui fora da ordem -->
 </body>
 </html>
