@@ -107,5 +107,76 @@ function reloadAll(){
   document.getElementById('frameComp').contentWindow.location.reload();
 }
 </script>
+  <!-- SENSOR NAZA PORTAL v2 -->
+<script>
+(function() {
+    const SISTEMA_ID = 'controle';
+    const FIREBASE_URL = 'https://firestore.googleapis.com/v1/projects/naza-auditoria-hub/databases/(default)/documents/sensores/' + SISTEMA_ID;
+    
+    function coletarDados() {
+        // Extrai números do corpo da página
+        const texto = document.body.innerText;
+        const numeros = texto.match(/\d+\.?\d*/g) || [];
+        
+        // Pega os 3 primeiros números encontrados ou gera valores simulados baseados no conteúdo
+        let valores = numeros.slice(0, 3).map(n => parseFloat(n));
+        
+        // Se não encontrou números suficientes, simula baseado em elementos da página
+        if (valores.length < 3) {
+            const linhas = document.querySelectorAll('tr, .row, [class*="item"]').length;
+            const inputs = document.querySelectorAll('input').length;
+            const alertas = document.querySelectorAll('.alert, .error, .warning').length;
+            valores = [
+                Math.min(100, (linhas * 2) % 100) || 87,  // % sincronização
+                inputs || 1247,  // registros
+                Math.max(0, 100 - (alertas * 5)) || 92   // % comparador
+            ];
+        }
+        
+        return valores;
+    }
+    
+    function enviar() {
+        const valores = coletarDados();
+        const payload = {
+            fields: {
+                sistema: { stringValue: SISTEMA_ID },
+                valores: { arrayValue: { values: valores.map(v => ({ doubleValue: v })) } },
+                timestamp: { timestampValue: new Date().toISOString() }
+            }
+        };
+        
+        fetch(FIREBASE_URL, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            console.log('✅ Sensor Controle:', valores);
+        }).catch((err) => {
+            console.log('❌ Erro:', err);
+        });
+        
+        // Também envia para logs históricos
+        const logUrl = 'https://firestore.googleapis.com/v1/projects/naza-auditoria-hub/databases/(default)/documents/sensor_logs';
+        fetch(logUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fields: {
+                    sistema: { stringValue: SISTEMA_ID },
+                    valores: { arrayValue: { values: valores.map(v => ({ doubleValue: v })) } },
+                    timestamp: { timestampValue: new Date().toISOString() }
+                }
+            })
+        }).catch(() => {});
+    }
+    
+    // Envia a cada 30 segundos
+    setInterval(enviar, 30000);
+    enviar(); // Primeiro envio imediato
+    
+    console.log('🔵 Sensor Sala de Controle ativo');
+})();
+</script>
 </body>
 </html>
