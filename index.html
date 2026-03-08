@@ -51,7 +51,7 @@ iframe{border:0;width:100%;height:100%;background:#fff}
     <div class="mark">SM</div>
     <div>
       <h1>Sala de Controle — RDO Operadores + Comparador V70</h1>
-      <div class="sub">Digitação no RDO ➜ Firestore (rdo_operadores/live) ➜ Comparador atualiza e processa automaticamente</div>
+      <div class="sub">Digitação no RDO ➜ Firebase ➜ Comparador atualiza e processa automaticamente</div>
     </div>
   </div>
   <div class="actions">
@@ -103,35 +103,200 @@ function showComp(){
   document.getElementById('grid').style.gridTemplateColumns='1fr';
 }
 function reloadAll(){
-  document.getElementById('frameRDO').contentWindow.location.reload();
-  document.getElementById('frameComp').contentWindow.location.reload();
+  try { document.getElementById('frameRDO').contentWindow.location.reload(); } catch(e){}
+  try { document.getElementById('frameComp').contentWindow.location.reload(); } catch(e){}
 }
 </script>
-  <!-- SENSOR NAZA PORTAL - SALA DE CONTROLE / COMPARADOR -->
+
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script>
 (function(){
-  const firebaseConfig={apiKey:"AIzaSyDneReMjO78JqJ-LvmSTiQqUMkxT97H6JE",authDomain:"naza-auditoria-hub.firebaseapp.com",databaseURL:"https://naza-auditoria-hub-default-rtdb.firebaseio.com",projectId:"naza-auditoria-hub"};
-  const app=firebase.apps.length?firebase.app():firebase.initializeApp(firebaseConfig);
-  const db=app.database(); const SISTEMA_ID='controle';
-  function numText(txt){const m=(String(txt||'')).replace(/\./g,'').replace(',','.').match(/-?\d+(?:\.\d+)?/); return m?Number(m[0]):0;}
-  function textFind(doc, patterns){ for(const p of patterns){ const el=[...doc.querySelectorAll('*')].find(x=>p.test((x.textContent||'').trim())); if(el) return numText(el.textContent); } return 0; }
-  function coletar(){
-    let total=0, operadores=0, mes=0;
-    try{
-      const rdo=document.getElementById('frameRDO')?.contentDocument;
-      const comp=document.getElementById('frameComp')?.contentDocument;
-      if(rdo){ operadores = textFind(rdo,[/operador/i,/operadores/i,/rdo/i]) || rdo.querySelectorAll('tbody tr').length; }
-      if(comp){ total = textFind(comp,[/total de eventos/i,/eventos/i,/total/i]) || comp.querySelectorAll('tbody tr').length; mes = textFind(comp,[/mes/i,/analisador/i]); }
-    }catch(e){ console.warn('Leitura dos iframes falhou', e); }
-    const gauge = total>0?Math.min(100, Math.max(0, (operadores/total)*100)):0;
-    return {sistema:SISTEMA_ID,valores:[gauge,total,operadores],dadosCompletos:{totalEventos:total,operadores,mes},timestamp:Date.now()};
+  const firebaseConfig = {
+    apiKey:"AIzaSyDneReMjO78JqJ-LvmSTiQqUMkxT97H6JE",
+    authDomain:"naza-auditoria-hub.firebaseapp.com",
+    databaseURL:"https://naza-auditoria-hub-default-rtdb.firebaseio.com",
+    projectId:"naza-auditoria-hub"
+  };
+
+  const SENSOR_APP_NAME = 'sensorPortalControle';
+  const sensorApp = firebase.apps.find(app => app.name === SENSOR_APP_NAME) || firebase.initializeApp(firebaseConfig, SENSOR_APP_NAME);
+  const db = sensorApp.database();
+  const SISTEMA_ID = 'controle';
+
+  function numFromText(txt){
+    const m = String(txt || '').replace(/\./g,'').replace(',','.').match(/-?\d+(?:\.\d+)?/);
+    return m ? Number(m[0]) : 0;
   }
-  function enviar(){const payload=coletar(); db.ref('sensores/'+SISTEMA_ID).set(payload).then(()=>console.log('🟢 Sensor Controle ativo',payload));}
-  setTimeout(enviar,6000); setInterval(enviar,30000);
+
+  function normalizeText(s){
+    return String(s || '').replace(/\s+/g,' ').trim();
+  }
+
+  function findBlockByTitle(doc, titlePattern){
+    const nodes = [...doc.querySelectorAll('h1,h2,h3,h4,h5,h6,strong,div,p,span')];
+    for(const node of nodes){
+      const text = normalizeText(node.textContent);
+      if(titlePattern.test(text)){
+        return node.closest('div,section,article,.card,.analysis-card') || node.parentElement || node;
+      }
+    }
+    return null;
+  }
+
+  function textInBlock(block){
+    return normalizeText(block ? block.innerText || block.textContent || '' : '');
+  }
+
+  function extractConsistency(doc){
+    const block = findBlockByTitle(doc, /Consist[eê]ncia OP x MES/i);
+    const text = textInBlock(block);
+    const m = text.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    return m ? Number(m[1].replace(',','.')) : 0;
+  }
+
+  function extractOperators(doc){
+    const block = findBlockByTitle(doc, /Dados dos Operadores/i);
+    const text = textInBlock(block);
+    const op = text.match(/(\d+)\s*operador/i);
+    return op ? Number(op[1]) : 0;
+  }
+
+  function extractSistemaEstruturado(doc){
+    const block = findBlockByTitle(doc, /Dados dos Operadores|Estat[ií]sticas de Processamento/i);
+    const text = textInBlock(block);
+    const sistema = text.match(/Sistema:\s*(\d+)/i);
+    const estruturado = text.match(/Estruturado:\s*(\d+)/i);
+    return {
+      sistema: sistema ? Number(sistema[1]) : 0,
+      estruturado: estruturado ? Number(estruturado[1]) : 0
+    };
+  }
+
+  function extractMes(doc){
+    const block = findBlockByTitle(doc, /Dados do MES/i);
+    const text = textInBlock(block);
+    const registros = text.match(/(\d+)\s*registros totais/i);
+    const equipamentos = text.match(/(\d+)\s*equipamentos/i);
+    return {
+      registros: registros ? Number(registros[1]) : 0,
+      equipamentos: equipamentos ? Number(equipamentos[1]) : 0
+    };
+  }
+
+  function extractCriticals(doc){
+    const block = findBlockByTitle(doc, /Problemas Cr[ií]ticos Identificados/i);
+    const text = textInBlock(block);
+    if(/Nenhum problema cr[ií]tico/i.test(text) || /Situa[cç][aã]o Normal/i.test(text)) return 0;
+
+    const equip = text.match(/(\d+)\s*equipamentos?\s+com\s+problemas?/i);
+    if(equip) return Number(equip[1]);
+
+    const itens = text.match(/(\d+)\s*itens?\s+n[aã]o ok/i);
+    if(itens) return Number(itens[1]);
+
+    const bullets = (text.match(/•/g) || []).length;
+    return bullets > 0 ? bullets : 0;
+  }
+
+  function extractAdvanced(doc){
+    const block = findBlockByTitle(doc, /Estat[ií]sticas Avan[cç]adas/i);
+    const text = textInBlock(block);
+    const cat = text.match(/Categoria Mais Frequente[\s\S]*?(\d+)\s*ocorr[eê]ncias/i);
+    const equip = text.match(/Equipamento Mais Problem[aá]tico[\s\S]*?(\d+)\s*problemas?/i);
+    return {
+      categoriaOcorrencias: cat ? Number(cat[1]) : 0,
+      equipamentoProblemas: equip ? Number(equip[1]) : 0
+    };
+  }
+
+  function extractFallbackProcessing(doc){
+    const block = findBlockByTitle(doc, /Estat[ií]sticas de Processamento|Processamento Sistema/i);
+    const text = textInBlock(block);
+    const eventos = text.match(/Eventos processados:\s*(\d+)/i);
+    const media = text.match(/M[eé]dia:\s*(\d+(?:[.,]\d+)?)%/i);
+    return {
+      eventos: eventos ? Number(eventos[1]) : 0,
+      media: media ? Number(media[1].replace(',','.')) : 0
+    };
+  }
+
+  function coletar(){
+    let consistencia = 0;
+    let operadores = 0;
+    let criticos = 0;
+    let mesRegistros = 0;
+    let sistema = 0;
+    let estruturado = 0;
+    let mesEquip = 0;
+    let equipamentoProblemas = 0;
+    let categoriaOcorrencias = 0;
+    let eventosProcessados = 0;
+
+    try{
+      const comp = document.getElementById('frameComp')?.contentDocument;
+      if(comp){
+        consistencia = extractConsistency(comp);
+        operadores = extractOperators(comp);
+        criticos = extractCriticals(comp);
+
+        const se = extractSistemaEstruturado(comp);
+        sistema = se.sistema;
+        estruturado = se.estruturado;
+
+        const mes = extractMes(comp);
+        mesRegistros = mes.registros;
+        mesEquip = mes.equipamentos;
+
+        const adv = extractAdvanced(comp);
+        equipamentoProblemas = adv.equipamentoProblemas;
+        categoriaOcorrencias = adv.categoriaOcorrencias;
+
+        const fallback = extractFallbackProcessing(comp);
+        eventosProcessados = fallback.eventos;
+        if(consistencia === 0 && fallback.media > 0) consistencia = fallback.media;
+        if(criticos === 0 && equipamentoProblemas > 0) criticos = equipamentoProblemas;
+        if(mesRegistros === 0 && eventosProcessados > 0) mesRegistros = eventosProcessados;
+      }
+    }catch(e){
+      console.warn('Leitura do comparador falhou', e);
+    }
+
+    return {
+      sistema: SISTEMA_ID,
+      valores: [
+        Number((consistencia || 0).toFixed(1)),
+        operadores || 0,
+        criticos || 0,
+        mesRegistros || 0
+      ],
+      dadosCompletos: {
+        consistencia: Number((consistencia || 0).toFixed(1)),
+        operadores: operadores || 0,
+        criticos: criticos || 0,
+        mesRegistros: mesRegistros || 0,
+        sistema: sistema || 0,
+        estruturado: estruturado || 0,
+        mesEquipamentos: mesEquip || 0,
+        equipamentoProblemas: equipamentoProblemas || 0,
+        categoriaOcorrencias: categoriaOcorrencias || 0,
+        eventosProcessados: eventosProcessados || 0
+      },
+      timestamp: Date.now()
+    };
+  }
+
+  function enviar(){
+    const payload = coletar();
+    db.ref('sensores/' + SISTEMA_ID)
+      .set(payload)
+      .then(() => console.log('🟢 Sensor Controle ativo', payload))
+      .catch((err) => console.error('❌ Erro Sensor Controle:', err));
+  }
+
+  setTimeout(enviar, 7000);
+  setInterval(enviar, 30000);
 })();
-</script>
 </script>
 </body>
 </html>
