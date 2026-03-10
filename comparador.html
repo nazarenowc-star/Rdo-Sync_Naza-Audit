@@ -1615,7 +1615,7 @@ const __keywords = (text) => {
   return uniq;
 };
 
-// Detecta motivos (usa: 1) match direto na lista, 2) vocabulário local, 3) heurística por palavras)
+// Detecta motidos (usa: 1) match direto na lista, 2) vocabulário local, 3) heurística por palavras)
 const __detectMotivos = (text) => {
   const raw = String(text||"").trim();
   if(!raw) return [];
@@ -4098,6 +4098,7 @@ function updateComparisonSummary(opEvents, mesEvents) {
 
 }
 
+// ==================== FUNÇÃO MELHORADA: updateComparisonCharts ====================
 function updateComparisonCharts(opEvents, mesEvents) {
     // Gráfico de Operadores
     const ctxOp = document.getElementById("chartComparisonOp");
@@ -4464,7 +4465,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
     __renderDetailsPanel("detailsComparisonMesCatSys", mesEvents, mesItems);
 
 
-    // ========================= Pareto + Heatmap (v61) =========================
+    // ========================= Pareto + Heatmap (v61 MELHORADO) =========================
     // Renderiza aqui para NÃO interferir nos gráficos principais (qualquer erro fica contido).
     try {
         window.charts = window.charts || {};
@@ -4484,8 +4485,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
             return arr.length ? arr : ['Não identificado'];
         };
 
-        // ✅ FUNÇÃO CORRIGIDA: Extrai problemas do texto livre e observações estruturadas
-        // ✅ Extração padronizada de problemas/motivos (OP e MES)
+        // ✅ FUNÇÃO MELHORADA: Extrai problemas do texto livre e observações estruturadas
         const __problemsFromEvent = (e) => {
             try {
                 // 0) Texto base (resumo + observações + textoCompleto)
@@ -4598,6 +4598,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
             return arr;
         };
 
+        // ✅ FUNÇÃO MELHORADA: Renderização do Pareto com Tooltips Enriquecidos
         const __renderPareto = (canvasId, chartKey, events, accentRGBAprefix) => {
             const canvas = document.getElementById(canvasId);
             if (!canvas || !window.Chart) return;
@@ -4608,7 +4609,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
                 return;
             }
 
-                        // Labels (multilinha, sem "bagunçar" a posição do Pareto):
+            // Labels (multilinha, sem "bagunçar" a posição do Pareto):
             // [EQUIPAMENTO, linha1 do problema, linha2 do problema]
             const __wrapLines = (txt, maxPerLine, maxLines) => {
                 const s = String(txt || '').replace(/\s+/g,' ').trim();
@@ -4718,7 +4719,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
                                     if (!items || !items.length) return '';
                                     const i = items[0].dataIndex;
                                     const it = sorted[i];
-                                                                        if (!it || !it.eqMap) return '';
+                                    if (!it || !it.eqMap) return '';
                                     const out = [];
                                     // Palavras‑chave do problema (para leitura rápida)
                                     const kws = __kw(it.problem || '');
@@ -5960,7 +5961,7 @@ function generateCompleteAnalysis() {
     showStatus("actionRecommendations", "🧠 Executando análise completa...", "info");
     
     setTimeout(() => {
-        updateConsistencyAnalysis();
+        updateConsistencyAnalysis(); // Já chama updateSpeedometer internamente
         updateCriticalIssues();
         updateAdvancedStats();
         updateActionRecommendations();
@@ -5992,41 +5993,63 @@ function generateActionPlan() {
 function updateConsistencyAnalysis() {
     const div = document.getElementById("consistencyAnalysis");
     if (!div) return;
-    
+
     const totalOp = eventsOperadoresAll.length;
     const totalMes = eventsMESAll.length;
-    const consistencyRate = totalOp > 0 && totalMes > 0 ? 
-        Math.min(totalOp, totalMes) / Math.max(totalOp, totalMes) * 100 : 0;
-    
+
+    // Cálculo da consistência
+    let consistencyRate = 0;
+    if (totalOp > 0 || totalMes > 0) {
+        const max = Math.max(totalOp, totalMes);
+        const min = Math.min(totalOp, totalMes);
+        consistencyRate = (min / max) * 100;
+    }
+
+    // Atualiza o velocímetro com o mesmo valor
+    updateSpeedometer();
+
     const turnos = new Set(eventsOperadoresAll.map(e => e.turno).filter(t => t));
     const operadores = new Set(eventsOperadoresAll.map(e => e.operador).filter(o => o));
-    
     const systemEvents = eventsOperadoresAll.filter(e => e.processingType === 'FREE_TEXT').length;
     const structuredEvents = eventsOperadoresAll.filter(e => e.processingType === 'RDO_PARSER').length;
-    
+    const equipamentosMes = [...new Set(eventsMESAll.map(e => e.equipamento))].length;
+
     let consistencyStatus = '';
-    if (consistencyRate >= 80) consistencyStatus = '✅ Excelente';
-    else if (consistencyRate >= 60) consistencyStatus = '⚠️ Moderada';
-    else consistencyStatus = '❌ Baixa';
-    
+    let statusColor = '';
+    if (consistencyRate >= 80) {
+        consistencyStatus = '✅ Excelente';
+        statusColor = 'var(--sam-green)';
+    } else if (consistencyRate >= 50) {
+        consistencyStatus = '⚠️ Moderada';
+        statusColor = 'var(--sam-orange)';
+    } else {
+        consistencyStatus = '❌ Baixa';
+        statusColor = '#c62828';
+    }
+
     div.innerHTML = `
         <div class="analysis-card">
             <h4>📊 Consistência OP x MES</h4>
-            <p style="font-size: 20px; font-weight: bold; color: ${consistencyRate >= 80 ? 'var(--sam-green)' : consistencyRate >= 60 ? 'var(--sam-orange)' : '#c62828'}">
+            <p style="font-size: 32px; font-weight: bold; color: ${statusColor}; margin-bottom: 5px;">
                 ${consistencyRate.toFixed(1)}%
+            </p>
+            <p style="font-size: 14px; margin: 0 0 8px 0;">
+                <span style="color: var(--sam-blue);">👷 ${totalOp} eventos</span> 
+                <strong>vs</strong> 
+                <span style="color: var(--sam-orange);">💻 ${totalMes} eventos</span>
             </p>
             <p><small>${consistencyStatus}</small></p>
         </div>
         <div class="analysis-card">
             <h4>👷 Dados dos Operadores</h4>
-            <p>${turnos.size} turno(s) distintos</p>
-            <p>${operadores.size} operador(es)</p>
+            <p><strong>${totalOp}</strong> registros totais</p>
+            <p>${turnos.size} turno(s) | ${operadores.size} operador(es)</p>
             <p><small>🔍 Sistema: ${systemEvents} | 🎯 Estruturado: ${structuredEvents}</small></p>
         </div>
         <div class="analysis-card">
             <h4>💻 Dados do MES</h4>
-            <p>${totalMes} registros totais</p>
-            <p>${[...new Set(eventsMESAll.map(e => e.equipamento))].length} equipamentos</p>
+            <p><strong>${totalMes}</strong> registros totais</p>
+            <p>${equipamentosMes} equipamentos</p>
             <p><small>Último: ${eventsMESAll.length > 0 ? eventsMESAll[eventsMESAll.length-1].data.toLocaleDateString('pt-BR') : 'Nenhum'}</small></p>
         </div>
     `;
@@ -6278,6 +6301,33 @@ function updateProcessingStatsAnalysis() {
 }
 
 // ========================= UTILITÁRIOS =========================
+// ========================= VELOCÍMETRO (Sala de Controle) =========================
+function updateSpeedometer() {
+    const speedElement = document.querySelector('.speed-value'); // Ajuste o seletor conforme necessário
+    if (!speedElement) return;
+    
+    const totalOp = eventsOperadoresAll.length;
+    const totalMes = eventsMESAll.length;
+    
+    // Calcula a consistência (mesma lógica do card)
+    let consistencyRate = 0;
+    if (totalOp > 0 || totalMes > 0) {
+        const max = Math.max(totalOp, totalMes);
+        const min = Math.min(totalOp, totalMes);
+        consistencyRate = (min / max) * 100;
+    }
+    
+    // Atualiza o valor no velocímetro (com 1 casa decimal)
+    speedElement.textContent = consistencyRate.toFixed(1) + '%';
+    
+    // Opcional: mudar a cor do velocímetro baseado no valor
+    const speedContainer = speedElement.closest('.speed-container');
+    if (speedContainer) {
+        speedContainer.style.color = consistencyRate >= 80 ? '#3a9d5d' : 
+                                    consistencyRate >= 50 ? '#f7941d' : '#c62828';
+    }
+}
+
 function showStatus(elementId, message, type) {
     const element = document.getElementById(elementId);
     if (element) {
@@ -6618,6 +6668,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     updateEquipmentSelects();
     refreshDBTable();
+    
+    // Inicializar o velocímetro com os dados carregados
+    setTimeout(updateSpeedometer, 500);
     
     if (eventsOperadoresAll.length > 0) {
         drawOperadoresChart();
