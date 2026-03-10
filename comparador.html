@@ -952,25 +952,25 @@ td.description-cell {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<!-- Firebase (Compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<!-- Firebase Loader (Compat) -->
 <script>
-  window.firebaseConfig = {"apiKey": "AIzaSyDEotosWG9ss-pMDbZluy5Dg_bOfG8kHJQ", "authDomain": "rdo-sync.firebaseapp.com", "projectId": "rdo-sync", "storageBucket": "rdo-sync.firebasestorage.app", "messagingSenderId": "551344630048", "appId": "1:551344630048:web:87e485e712473a46234f45"};
-  try { if (!firebase.apps.length) firebase.initializeApp(window.firebaseConfig); } catch (e) {}
-  window.__db = (() => { try { return firebase.firestore(); } catch (e) { return null; } })();
-</script>
-<!-- BUILD_FIREBASE_LOADER_1772733127 Firebase Loader (Compat) -->
-<script>
-  window.firebaseConfig = {"apiKey": "AIzaSyBqF7_FmiSVj_pw81TxVIf3_gjgwJnWaOc", "authDomain": "rdo-sync-b0e74.firebaseapp.com", "projectId": "rdo-sync-b0e74", "storageBucket": "rdo-sync-b0e74.firebasestorage.app", "messagingSenderId": "679708769339", "appId": "1:679708769339:web:f9aabaaeb289f8c6b9b01e"};
+  window.firebaseConfig = {
+    apiKey: "AIzaSyBqF7_FmiSVj_pw81TxVIf3_gjgwJnWaOc",
+    authDomain: "rdo-sync-b0e74.firebaseapp.com",
+    projectId: "rdo-sync-b0e74",
+    storageBucket: "rdo-sync-b0e74.firebasestorage.app",
+    messagingSenderId: "679708769339",
+    appId: "1:679708769339:web:f9aabaaeb289f8c6b9b01e"
+  };
   window.__BUILD_TAG__ = "BUILD_FIREBASE_LOADER_1772733127";
 </script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
   try {
-    firebase.initializeApp(window.firebaseConfig);
-    window.__db = firebase.firestore();
+    const existingApp = firebase.apps && firebase.apps.length ? firebase.apps[0] : null;
+    const app = existingApp || firebase.initializeApp(window.firebaseConfig);
+    window.__db = firebase.firestore(app);
     console.log("🔥 Firebase OK | projectId=", window.firebaseConfig.projectId, "| build=", window.__BUILD_TAG__);
   } catch(e) {
     console.warn("❌ Firebase init falhou (provável bloqueio de rede/CSP):", e);
@@ -5550,13 +5550,41 @@ function setGlobalAlarm(isCritical) {
     __alarmLastState = isCritical;
 }
 
-function playAlarmBeep() {
-    // Beep via WebAudio (sem arquivos). Pode depender de interação do usuário (clique/tecla) — normal no navegador.
-    try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
+let __alarmAudioCtx = null;
+let __alarmAudioUnlocked = false;
 
-        const ctx = new AudioCtx();
+function ensureAlarmAudioContext() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!__alarmAudioCtx) {
+        __alarmAudioCtx = new AudioCtx();
+    }
+    return __alarmAudioCtx;
+}
+
+async function unlockAlarmAudio() {
+    try {
+        const ctx = ensureAlarmAudioContext();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') await ctx.resume();
+        __alarmAudioUnlocked = ctx.state === 'running';
+    } catch(e) {}
+}
+
+['click','touchstart','keydown'].forEach(evt => {
+    window.addEventListener(evt, unlockAlarmAudio, { passive: true, once: true });
+});
+
+function playAlarmBeep() {
+    try {
+        const ctx = ensureAlarmAudioContext();
+        if (!ctx) return;
+        if (ctx.state !== 'running') {
+            if (!__alarmAudioUnlocked) return;
+            ctx.resume().catch(()=>{});
+            if (ctx.state !== 'running') return;
+        }
+
         const master = ctx.createGain();
         master.gain.value = 0.08;
         master.connect(ctx.destination);
@@ -5582,7 +5610,7 @@ function playAlarmBeep() {
         beep(t0 + 0.25, 880, 0.18);
         beep(t0 + 0.50, 660, 0.22);
 
-        // Encerra o contexto depois
+        // Encerra o ganho depois
         setTimeout(() => { try { ctx.close(); } catch(e){} }, 1200);
     } catch (e) {
         // Silencia se o navegador bloquear
