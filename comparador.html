@@ -6301,7 +6301,127 @@ function updateProcessingStatsAnalysis() {
 }
 
 // ========================= UTILITÁRIOS =========================
-function showStatus(elementId, message, type) {
+// ========================= VELOCÍMETRO (Sala de Controle) =========================
+function updateSpeedometer() {
+    const speedElement = document.querySelector('.speed-value'); // Ajuste o seletor conforme necessário
+    if (!speedElement) return;
+    
+    const totalOp = eventsOperadoresAll.length;
+    const totalMes = eventsMESAll.length;
+    
+    // Calcula a consistência (mesma lógica do card)
+    let consistencyRate = 0;
+    if (totalOp > 0 || totalMes > 0) {
+        const max = Math.max(totalOp, totalMes);
+        const min = Math.min(totalOp, totalMes);
+        consistencyRate = (min / max) * 100;
+    }
+    
+    // Atualiza o valor no velocímetro (com 1 casa decimal)
+    speedElement.textContent = consistencyRate.toFixed(1) + '%';
+    
+    // Opcional: mudar a cor do velocímetro baseado no valor
+    const speedContainer = speedElement.closest('.speed-container');
+    if (speedContainer) {
+        speedContainer.style.color = consistencyRate >= 80 ? '#3a9d5d' : 
+                                    consistencyRate >= 50 ? '#f7941d' : '#c62828';
+    }
+}
+
+// Modificar a função updateConsistencyAnalysis para também atualizar o velocímetro
+function updateConsistencyAnalysis() {
+    const div = document.getElementById("consistencyAnalysis");
+    if (!div) return;
+
+    const totalOp = eventsOperadoresAll.length;
+    const totalMes = eventsMESAll.length;
+
+    // Cálculo da consistência
+    let consistencyRate = 0;
+    if (totalOp > 0 || totalMes > 0) {
+        const max = Math.max(totalOp, totalMes);
+        const min = Math.min(totalOp, totalMes);
+        consistencyRate = (min / max) * 100;
+    }
+
+    // Atualiza o velocímetro com o mesmo valor
+    updateSpeedometer();
+
+    const turnos = new Set(eventsOperadoresAll.map(e => e.turno).filter(t => t));
+    const operadores = new Set(eventsOperadoresAll.map(e => e.operador).filter(o => o));
+    const systemEvents = eventsOperadoresAll.filter(e => e.processingType === 'FREE_TEXT').length;
+    const structuredEvents = eventsOperadoresAll.filter(e => e.processingType === 'RDO_PARSER').length;
+    const equipamentosMes = [...new Set(eventsMESAll.map(e => e.equipamento))].length;
+
+    let consistencyStatus = '';
+    let statusColor = '';
+    if (consistencyRate >= 80) {
+        consistencyStatus = '✅ Excelente';
+        statusColor = 'var(--sam-green)';
+    } else if (consistencyRate >= 50) {
+        consistencyStatus = '⚠️ Moderada';
+        statusColor = 'var(--sam-orange)';
+    } else {
+        consistencyStatus = '❌ Baixa';
+        statusColor = '#c62828';
+    }
+
+    div.innerHTML = `
+        <div class="analysis-card">
+            <h4>📊 Consistência OP x MES</h4>
+            <p style="font-size: 32px; font-weight: bold; color: ${statusColor}; margin-bottom: 5px;">
+                ${consistencyRate.toFixed(1)}%
+            </p>
+            <p style="font-size: 14px; margin: 0 0 8px 0;">
+                <span style="color: var(--sam-blue);">👷 ${totalOp} eventos</span> 
+                <strong>vs</strong> 
+                <span style="color: var(--sam-orange);">💻 ${totalMes} eventos</span>
+            </p>
+            <p><small>${consistencyStatus}</small></p>
+        </div>
+        <div class="analysis-card">
+            <h4>👷 Dados dos Operadores</h4>
+            <p><strong>${totalOp}</strong> registros totais</p>
+            <p>${turnos.size} turno(s) | ${operadores.size} operador(es)</p>
+            <p><small>🔍 Sistema: ${systemEvents} | 🎯 Estruturado: ${structuredEvents}</small></p>
+        </div>
+        <div class="analysis-card">
+            <h4>💻 Dados do MES</h4>
+            <p><strong>${totalMes}</strong> registros totais</p>
+            <p>${equipamentosMes} equipamentos</p>
+            <p><small>Último: ${eventsMESAll.length > 0 ? eventsMESAll[eventsMESAll.length-1].data.toLocaleDateString('pt-BR') : 'Nenhum'}</small></p>
+        </div>
+    `;
+}
+
+// Modificar a função generateCompleteAnalysis para garantir que o velocímetro atualize
+function generateCompleteAnalysis() {
+    showStatus("actionRecommendations", "🧠 Executando análise completa...", "info");
+    
+    setTimeout(() => {
+        updateConsistencyAnalysis(); // Já chama updateSpeedometer internamente
+        updateCriticalIssues();
+        updateAdvancedStats();
+        updateActionRecommendations();
+        updateExecutiveSummary();
+        updateProcessingStatsAnalysis();
+        
+        showStatus("actionRecommendations", "✅ Análise concluída", "success");
+    }, 1000);
+}
+
+// Adicionar chamada inicial no DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    loadCompatibleData();
+    
+    // ... (seu código existente)
+    
+    // Inicializar o velocímetro com os dados carregados
+    setTimeout(updateSpeedometer, 500);
+    
+    // ... (resto do código)
+});
+    function showStatus(elementId, message, type) {
     const element = document.getElementById(elementId);
     if (element) {
         element.innerHTML = `<div class="status-${type} status-message">${message}</div>`;
