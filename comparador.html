@@ -1615,7 +1615,7 @@ const __keywords = (text) => {
   return uniq;
 };
 
-// Detecta motivos (usa: 1) match direto na lista, 2) vocabulário local, 3) heurística por palavras)
+// Detecta motidos (usa: 1) match direto na lista, 2) vocabulário local, 3) heurística por palavras)
 const __detectMotivos = (text) => {
   const raw = String(text||"").trim();
   if(!raw) return [];
@@ -4098,6 +4098,7 @@ function updateComparisonSummary(opEvents, mesEvents) {
 
 }
 
+// ==================== FUNÇÃO MELHORADA: updateComparisonCharts ====================
 function updateComparisonCharts(opEvents, mesEvents) {
     // Gráfico de Operadores
     const ctxOp = document.getElementById("chartComparisonOp");
@@ -4464,7 +4465,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
     __renderDetailsPanel("detailsComparisonMesCatSys", mesEvents, mesItems);
 
 
-    // ========================= Pareto + Heatmap (v61) =========================
+    // ========================= Pareto + Heatmap (v61 MELHORADO) =========================
     // Renderiza aqui para NÃO interferir nos gráficos principais (qualquer erro fica contido).
     try {
         window.charts = window.charts || {};
@@ -4484,8 +4485,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
             return arr.length ? arr : ['Não identificado'];
         };
 
-        // ✅ FUNÇÃO CORRIGIDA: Extrai problemas do texto livre e observações estruturadas
-        // ✅ Extração padronizada de problemas/motivos (OP e MES)
+        // ✅ FUNÇÃO MELHORADA: Extrai problemas do texto livre e observações estruturadas
         const __problemsFromEvent = (e) => {
             try {
                 // 0) Texto base (resumo + observações + textoCompleto)
@@ -4598,6 +4598,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
             return arr;
         };
 
+        // ✅ FUNÇÃO MELHORADA: Renderização do Pareto com Tooltips Enriquecidos
         const __renderPareto = (canvasId, chartKey, events, accentRGBAprefix) => {
             const canvas = document.getElementById(canvasId);
             if (!canvas || !window.Chart) return;
@@ -4608,7 +4609,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
                 return;
             }
 
-                        // Labels (multilinha, sem "bagunçar" a posição do Pareto):
+            // Labels (multilinha, sem "bagunçar" a posição do Pareto):
             // [EQUIPAMENTO, linha1 do problema, linha2 do problema]
             const __wrapLines = (txt, maxPerLine, maxLines) => {
                 const s = String(txt || '').replace(/\s+/g,' ').trim();
@@ -4718,7 +4719,7 @@ function updateComparisonCharts(opEvents, mesEvents) {
                                     if (!items || !items.length) return '';
                                     const i = items[0].dataIndex;
                                     const it = sorted[i];
-                                                                        if (!it || !it.eqMap) return '';
+                                    if (!it || !it.eqMap) return '';
                                     const out = [];
                                     // Palavras‑chave do problema (para leitura rápida)
                                     const kws = __kw(it.problem || '');
