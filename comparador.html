@@ -5993,41 +5993,63 @@ function generateActionPlan() {
 function updateConsistencyAnalysis() {
     const div = document.getElementById("consistencyAnalysis");
     if (!div) return;
-    
+
+    // Pega todos os eventos (já carregados no sistema)
     const totalOp = eventsOperadoresAll.length;
     const totalMes = eventsMESAll.length;
-    const consistencyRate = totalOp > 0 && totalMes > 0 ? 
-        Math.min(totalOp, totalMes) / Math.max(totalOp, totalMes) * 100 : 0;
-    
+
+    // Cálculo da consistência: (menor / maior) * 100
+    let consistencyRate = 0;
+    if (totalOp > 0 || totalMes > 0) {
+        const max = Math.max(totalOp, totalMes);
+        const min = Math.min(totalOp, totalMes);
+        consistencyRate = (min / max) * 100;
+    }
+
+    // Estatísticas adicionais
     const turnos = new Set(eventsOperadoresAll.map(e => e.turno).filter(t => t));
     const operadores = new Set(eventsOperadoresAll.map(e => e.operador).filter(o => o));
-    
     const systemEvents = eventsOperadoresAll.filter(e => e.processingType === 'FREE_TEXT').length;
     const structuredEvents = eventsOperadoresAll.filter(e => e.processingType === 'RDO_PARSER').length;
-    
+    const equipamentosMes = [...new Set(eventsMESAll.map(e => e.equipamento))].length;
+
     let consistencyStatus = '';
-    if (consistencyRate >= 80) consistencyStatus = '✅ Excelente';
-    else if (consistencyRate >= 60) consistencyStatus = '⚠️ Moderada';
-    else consistencyStatus = '❌ Baixa';
-    
+    let statusColor = '';
+    if (consistencyRate >= 80) {
+        consistencyStatus = '✅ Excelente';
+        statusColor = 'var(--sam-green)';
+    } else if (consistencyRate >= 50) {
+        consistencyStatus = '⚠️ Moderada';
+        statusColor = 'var(--sam-orange)';
+    } else {
+        consistencyStatus = '❌ Baixa';
+        statusColor = '#c62828';
+    }
+
+    // HTML corrigido, mostrando os valores reais e a taxa
     div.innerHTML = `
         <div class="analysis-card">
             <h4>📊 Consistência OP x MES</h4>
-            <p style="font-size: 20px; font-weight: bold; color: ${consistencyRate >= 80 ? 'var(--sam-green)' : consistencyRate >= 60 ? 'var(--sam-orange)' : '#c62828'}">
+            <p style="font-size: 32px; font-weight: bold; color: ${statusColor}; margin-bottom: 5px;">
                 ${consistencyRate.toFixed(1)}%
+            </p>
+            <p style="font-size: 14px; margin: 0 0 8px 0;">
+                <span style="color: var(--sam-blue);">👷 ${totalOp} eventos</span> 
+                <strong>vs</strong> 
+                <span style="color: var(--sam-orange);">💻 ${totalMes} eventos</span>
             </p>
             <p><small>${consistencyStatus}</small></p>
         </div>
         <div class="analysis-card">
             <h4>👷 Dados dos Operadores</h4>
-            <p>${turnos.size} turno(s) distintos</p>
-            <p>${operadores.size} operador(es)</p>
+            <p><strong>${totalOp}</strong> registros totais</p>
+            <p>${turnos.size} turno(s) | ${operadores.size} operador(es)</p>
             <p><small>🔍 Sistema: ${systemEvents} | 🎯 Estruturado: ${structuredEvents}</small></p>
         </div>
         <div class="analysis-card">
             <h4>💻 Dados do MES</h4>
-            <p>${totalMes} registros totais</p>
-            <p>${[...new Set(eventsMESAll.map(e => e.equipamento))].length} equipamentos</p>
+            <p><strong>${totalMes}</strong> registros totais</p>
+            <p>${equipamentosMes} equipamentos</p>
             <p><small>Último: ${eventsMESAll.length > 0 ? eventsMESAll[eventsMESAll.length-1].data.toLocaleDateString('pt-BR') : 'Nenhum'}</small></p>
         </div>
     `;
