@@ -202,19 +202,10 @@ function reloadAll(){
   function extractAdvanced(doc){
     const block = findBlockByTitle(doc, /Estat[ií]sticas Avan[cç]adas/i);
     const text = textInBlock(block);
-
-    const catNome =
-      text.match(/Categoria Mais Frequente[\s\S]*?([A-Za-zÀ-ÿ0-9 _\-\/]+)[\s\S]*?\d+\s*ocorr[eê]ncias/i);
-
-    const catQtd =
-      text.match(/Categoria Mais Frequente[\s\S]*?(\d+)\s*ocorr[eê]ncias/i);
-
-    const equip =
-      text.match(/Equipamento Mais Problem[aá]tico[\s\S]*?(\d+)\s*problemas?/i);
-
+    const cat = text.match(/Categoria Mais Frequente[\s\S]*?(\d+)\s*ocorr[eê]ncias/i);
+    const equip = text.match(/Equipamento Mais Problem[aá]tico[\s\S]*?(\d+)\s*problemas?/i);
     return {
-      categoriaNome: catNome ? normalizeText(catNome[1]) : '',
-      categoriaOcorrencias: catQtd ? Number(catQtd[1]) : 0,
+      categoriaOcorrencias: cat ? Number(cat[1]) : 0,
       equipamentoProblemas: equip ? Number(equip[1]) : 0
     };
   }
@@ -240,7 +231,6 @@ function reloadAll(){
     let mesEquip = 0;
     let equipamentoProblemas = 0;
     let categoriaOcorrencias = 0;
-    let categoriaNome = '';
     let eventosProcessados = 0;
 
     try{
@@ -261,11 +251,9 @@ function reloadAll(){
         const adv = extractAdvanced(comp);
         equipamentoProblemas = adv.equipamentoProblemas;
         categoriaOcorrencias = adv.categoriaOcorrencias;
-        categoriaNome = adv.categoriaNome;
 
         const fallback = extractFallbackProcessing(comp);
         eventosProcessados = fallback.eventos;
-
         if(consistencia === 0 && fallback.media > 0) consistencia = fallback.media;
         if(criticos === 0 && equipamentoProblemas > 0) criticos = equipamentoProblemas;
         if(mesRegistros === 0 && eventosProcessados > 0) mesRegistros = eventosProcessados;
@@ -277,10 +265,10 @@ function reloadAll(){
     return {
       sistema: SISTEMA_ID,
       valores: [
-        operadores || 0,                                 // V1 = Dados dos Operadores
-        categoriaOcorrencias || criticos || 0,           // V2 = Categoria mais frequente
-        mesRegistros || 0,                               // V3 = Dados do MES
-        Number((consistencia || 0).toFixed(1))           // Velocímetro = Consistência
+        Number((consistencia || 0).toFixed(1)),
+        operadores || 0,
+        criticos || 0,
+        mesRegistros || 0
       ],
       dadosCompletos: {
         consistencia: Number((consistencia || 0).toFixed(1)),
@@ -291,7 +279,6 @@ function reloadAll(){
         estruturado: estruturado || 0,
         mesEquipamentos: mesEquip || 0,
         equipamentoProblemas: equipamentoProblemas || 0,
-        categoriaNome: categoriaNome || '',
         categoriaOcorrencias: categoriaOcorrencias || 0,
         eventosProcessados: eventosProcessados || 0
       },
